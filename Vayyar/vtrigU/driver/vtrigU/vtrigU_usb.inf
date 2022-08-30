@@ -1,0 +1,54 @@
+[Version]
+Signature = "$Windows NT$"
+Class = %ClassName%
+ClassGuid = {88BAE032-5A81-49f0-BC3D-A4FF138216D6}
+Provider = %ManufacturerName%
+CatalogFile = vtrigU_usb.cat
+DriverVer = 12/12/2018,1.0.0.0
+
+; ========== Manufacturer/Models sections ===========
+ 
+[Manufacturer]
+%ManufacturerName% = Standard,NTx86
+%ManufacturerName% = Standard,NTamd64
+
+[Standard.NTx86]
+%DeviceName% =USB_Install, USB\VID_2C9C&PID_7300
+ 
+[Standard.NTamd64]
+%DeviceName% =USB_Install, USB\VID_2C9C&PID_7300
+ 
+; ========== Class definition ===========
+
+[ClassInstall32]
+AddReg = ClassInstall_AddReg
+
+[ClassInstall_AddReg]
+HKR,,,,%ClassName%
+HKR,,NoInstallClass,,1
+HKR,,IconPath,%REG_MULTI_SZ%,"%systemroot%\system32\setupapi.dll,-20"
+HKR,,LowerLogoVersion,,5.2
+
+; =================== Installation ===================
+ 
+[USB_Install]
+Include = winusb.inf
+Needs = WINUSB.NT
+ 
+[USB_Install.Services]
+Include = winusb.inf
+Needs = WINUSB.NT.Services
+ 
+[USB_Install.HW]
+AddReg=Dev_AddReg
+ 
+[Dev_AddReg]
+HKR,,DeviceInterfaceGUIDs,0x10000,"{62809D89-4D2A-48EF-A1D7-E09C3B8D6B5A}"
+
+; =================== Strings ===================
+ 
+[Strings]
+ManufacturerName="Vayyar Inc"
+ClassName="USBDevice"
+DeviceName="vtrigU USB Device"
+REG_MULTI_SZ = 0x00010000

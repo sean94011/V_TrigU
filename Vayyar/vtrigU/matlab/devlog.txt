@@ -1,0 +1,105 @@
+1661981603.563  S_INFO  ServicesAccessor.cpp,245,Vayyar::Initialize_                                               ++++++++++ 2022-08-31_21:33:23.563 ++++++++++
+1661981603.564  S_INFO  ServicesAccessor.cpp,246,Vayyar::Initialize_                                               DevLog: [devlog.txt]
+1661981603.564  S_INFO  ServicesAccessor.cpp,267,Vayyar::Initialize_                                               Setting Folder: [C:\ProgramData\Vayyar\vtrigU]
+1661981603.566  S_INFO  vtrigU.cpp,166,`anonymous-namespace'::LibGlobals::Init                                     Init: Services Active
+1661981603.566  S_INFO  LibUsbBoardAccessor.cpp,836,Vayyar::Device::LibUsbBoardAccessor::LibUsbBoardAccessor       Constructing LibUsbBoardAccessor...
+1661981603.566  S_INFO  vtrigU.cpp,423,`anonymous-namespace'::helper_Connect                                       Connecting
+1661981603.577  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.578  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.578  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.578  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.578  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.578  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.578  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.578  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.579  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.579  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.579  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.595  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.595  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.595  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.595  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.595  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.595  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.595  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.595  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.689  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.689  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.689  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.689  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.689  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.689  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.690  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.690  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.707  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.707  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.752  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.752  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.752  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.752  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -5 (LIBUSB_ERROR_NOT_FOUND: Entity not found)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -5 (LIBUSB_ERROR_NOT_FOUND: Entity not found)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -5 (LIBUSB_ERROR_NOT_FOUND: Entity not found)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981603.784  S_ERROR LibUsbBoardAccessor.cpp,738,Vayyar::Device::LibUsbDevice::open                             Error reported. Desc: libusb_open failed; libusb rc: -12 (LIBUSB_ERROR_NOT_SUPPORTED: Operation not supported or unimplemented on this platform)
+1661981603.784  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()
+1661981603.784  S_DEBUG LibUsbBoardAccessor.cpp,1039,Vayyar::Device::LibUsbBoardAccessor::GetBoards                total nBoards: 1
+1661981603.784  S_INFO  ConnectionManager.cpp,52,Vayyar::Device::ConnectionManager::FindVayyarBoards               nBoards found: 1
+1661981603.784  S_INFO  ConnectionManager.cpp,70,Vayyar::Device::ConnectionManager::GetDeviceInfoVector            Found 1 boards, 1 devRecords
+1661981603.784  S_DEBUG ConnectionManager.cpp,165,Vayyar::Device::ConnectionManager::GetDeviceInfoVector           Found board: vtrigU
+1661981603.784  S_DEBUG ConnectionManager.cpp,204,Vayyar::Device::ConnectionManager::GetDeviceInfoVector           Collect device info from 1 devices
+1661981603.829  S_INFO  LibUsbBoardAccessor.cpp,714,Vayyar::Device::LibUsbDevice::open                             LibUsbDevice::open()
+1661981604.718  S_ERROR FlashFileFetcher.cpp,78,Vayyar::FlashFileFetcherImpl::ReadFlashParam                       Error reported. Desc: No paramater portCalib on flash
+1661981604.718  S_ERROR PortCalibrationFetcher.cpp,31,Vayyar::vtrigU::PortCalibrationFetcher::RefreshPortCali      Error reported. Desc: No portsCalib on device; using default instead
+1661981604.720  S_INFO  vtrigU.cpp,599,vtrigU_ApplySettings                                                        Call: vtrigU_ApplySettings
+1661981604.722  S_INFO  ILFunctionFactory.cpp,108,ILFunctionFactory::InitInstance                                  SeqGenerator: SFunction
+1661981605.882  S_INFO  ILFunctionFactory.cpp,108,ILFunctionFactory::InitInstance                                  SeqGenerator: SFunction
+1661981605.882  S_INFO  ILFunctionFactory.cpp,108,ILFunctionFactory::InitInstance                                  SeqGenerator: SFunction
+1661981606.073  S_INFO  SlotListWithId.h,27,Vayyar::SlotListWithId<struct Vayyar::Recording::MultiRecordingBu      Initializing SlotList [RecorderSlotList]: 3 slots * 48 bytes = 0x90 bytes
+1661981606.073  S_INFO  SlotListWithId.h,27,Vayyar::SlotListWithId<struct Vayyar::Processing::BoardConfigurat      Initializing SlotList [BoardConfigurationData]: 1 slots * 384 bytes = 0x180 bytes
+1661981606.290  S_INFO  vtrigU.cpp,730,vtrigU_GetNPairs                                                            Call: vtrigU_GetNPairs
+1661981606.290  S_INFO  vtrigU.cpp,738,vtrigU_GetAntennaPairs                                                      Call: vtrigU_GetAntennaPairs
+1661981606.325  S_INFO  vtrigU.cpp,722,vtrigU_GetFreqVectorSizeDouble                                              Call: vtrigU_GetFreqVectorSizeDouble
+1661981606.325  S_INFO  vtrigU.cpp,696,vtrigU_GetFreqVector_MHz                                                    Call: vtrigU_GetFreqVector_MHz
+1661981606.325  S_INFO  vtrigU.cpp,654,vtrigU_Record                                                               Call: vtrigU_Record
+1661981606.387  S_INFO  vtrigU.cpp,730,vtrigU_GetNPairs                                                            Call: vtrigU_GetNPairs
+1661981606.390  S_INFO  vtrigU.cpp,681,vtrigU_GetResult_NoStruct                                                   Call: vtrigU_GetResult_NoStruct
+1661981743.570  S_INFO  vtrigU.cpp,573,vtrigU_Init                                                                 Call: vtrigU_Init
+1661981743.571  S_INFO  LibUsbBoardAccessor.cpp,748,Vayyar::Device::LibUsbDevice::close                            LibUsbDevice::close()

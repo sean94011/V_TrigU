@@ -16,20 +16,20 @@ import vtrigU.*;
 vtrigU.Init();
 
 % Set setting structure:
-customSetting = input("Default Setting: 62-69 GHz, 100 freq points, RBW 100 KHz, LOW Recording Frame Rate\nDo you want to use YOUR OWN setting ('y'/'n')? ",'s');
+customSetting = input("Default Setting: 62-69 GHz, 100 freq points, RBW 100 KHz, LOW Recording Frame Rate\nDo you want to use your own setting ('y'/'n')? ",'s');
 if customSetting == 'y'
     % *Customized Setting
     % Frequency Band: 62-69 GHZ
     curSettings.freqRange.freqStartMHz  = input("Please enter your desired start frequency in MHz (62000-69000 MHZ) : ");
-    curSettings.freqRange.freqStopMHz   = input("Please enter your desired start frequency in MHz (62000-69000 MHZ): ");
-    curSettings.freqRange.numFreqPoints = input("Please enter your desired number of frequency points: ");
+    curSettings.freqRange.freqStopMHz   = input("Please enter the desired start frequency in MHz (62000-69000 MHZ): ");
+    curSettings.freqRange.numFreqPoints = input("Please enter the desired number of frequency points: ");
     % RBW 10-800 KHz
-    curSettings.rbw_khz = input("Please enter your desired RBW KHz (10-800 KHz): ");
+    curSettings.rbw_khz = input("Please enter the desired RBW KHz (10-800 KHz): ");
     % Recording Profiles:
     % 1. LOW_RATE:  20 Tx, High Resolution 3D Imaging
     % 2. MED_RATE:  10 Tx, Medium Resolution 3D Imaging
     % 3. HIGH_RATE:  4 Tx, 2D Imaging, People Tracking
-    recordingProfile = input("Please enter your desired recording frame rate as -> 'low', 'med', 'high': ",'s');
+    recordingProfile = input("Please enter the desired recording frame rate as -> 'low', 'med', 'high': ",'s');
     if recordingProfile == "high"
         curSettings.txMode = vtrigU.TxMode.HIGH_RATE; 
     elseif recordingProfile == "med"

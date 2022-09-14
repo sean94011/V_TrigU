@@ -13,16 +13,19 @@ import vtrigU.*;
 %% Initialize & Set up the Radar
 
 % initialize the device
-vtrigU.Init();
+                                                    
+vtrigU.vtrigU.Init();
 
 % Set setting structure:
 customSetting = input("Default Setting: 62-69 GHz, 100 freq points, RBW 100 KHz, LOW Recording Frame Rate\nDo you want to use YOUR OWN setting ('y'/'n')? ",'s');
+filter_type = input("What type of filter do you want to apply? (matched, none) ","s");
 if customSetting == 'y'
     % *Customized Setting
     % Frequency Band: 62-69 GHZ
     curSettings.freqRange.freqStartMHz  = input("Please enter your desired start frequency in MHz (62000-69000 MHZ) : ");
-    curSettings.freqRange.freqStopMHz   = input("Please enter your desired start frequency in MHz (62000-69000 MHZ): ");
-    curSettings.freqRange.numFreqPoints = input("Please enter your desired number of frequency points: ");
+    curSettings.freqRange.freqStopMHz   = input("Please enter your desired start frequency in MHz (62000-69000 MHZ, at least 150 MHz from start freq): ");
+    % Frequency Points 2-151
+    curSettings.freqRange.numFreqPoints = input("Please enter your desired number of frequency points (2-150): ");
     % RBW 10-800 KHz
     curSettings.rbw_khz = input("Please enter your desired RBW KHz (10-800 KHz): ");
     % Recording Profiles:
@@ -43,8 +46,8 @@ else
     disp('Using Default Setting...');
     curSettings.freqRange.freqStartMHz  = 62*1000;
     curSettings.freqRange.freqStopMHz   = 69*1000;
-    curSettings.freqRange.numFreqPoints = 100;
-    curSettings.rbw_khz = 100;
+    curSettings.freqRange.numFreqPoints = 150;
+    curSettings.rbw_khz = 800;
     curSettings.txMode = vtrigU.TxMode.LOW_RATE;
 end
 
@@ -55,61 +58,22 @@ vtrigU.ApplySettings(curSettings.freqRange.freqStartMHz,curSettings.freqRange.fr
 curSettings = vtrigU.GetSettings();
 vtrigU.ValidateSettings(curSettings);
 
-%Get antenna pairs and convert to matlab matrix
-ants_pairs = vtrigU.GetAntennaPairs(curSettings.txMode);
-TxRxPairs = zeros(ants_pairs.Length,2);
-for ii = 1: ants_pairs.Length
-    TxRxPairs(ii,1) = double(ants_pairs(ii).tx);
-    TxRxPairs(ii,2) = double(ants_pairs(ii).rx);
-end
-
-%Get used frequencies in Hz
-Freqs = double(vtrigU.GetFreqVector_MHz())*1e6;
-
 %% Record the Scanning
-
-% Do a single record
-vtrigU.Record();
-
-%Read  calibrated result and convert to matlab complex matrix
-Record_result = vtrigU.GetRecordingResult(SignalCalibration.DEFAULT_CALIBRATION);
-Smat = double(Record_result);
-Smat = Smat(1:2:end) + 1i*Smat(2:2:end);
-Smat = reshape(Smat,size(TxRxPairs,1),size(Freqs,2));
-
-%% Data Processing
-
-%convert to complex time domain signal
-Nfft = 2^(ceil(log2(size(Freqs,2)))+1);
-Smat_td = ifft(Smat,Nfft,2);
-Ts = 1/Nfft/(Freqs(2)-Freqs(1)+1e-16); %Avoid nan checks
-time_vector = 0:Ts:Ts*(Nfft-1);
-
-%Create and show power delay profile - non coherent summation
-PDP = mean(abs(Smat_td),1);
-figure(1);ylim([0 2]);plot(time_vector*1.5e8,20*log10(abs(PDP./max(abs(PDP)))));
-xlabel('Distance[m]');ylabel('Normalized amplitude[dB]');
-
-
-%get antennas locations from script
-vtrigU_ants_location;
-
-%Create a steering vector
-theta = 0.0; %sin(theta) = x/R;
-phi = 0.0;   %sin(phi) = y/R;
-K_vec_x = 2*pi*Freqs*sin(theta)/3e8;
-K_vec_y = 2*pi*Freqs*sin(phi)/3e8;
-
-%Create a steering matrix for all pairs location
-H = zeros(size(TxRxPairs,1),size(Freqs,2));
-for ii = 1: size(TxRxPairs,1)
-    D = VtrigU_ants_location(TxRxPairs(ii,1),:)+VtrigU_ants_location(TxRxPairs(ii,2),:);
-    H(ii,:) = exp(2*pi*1i*(K_vec_x*D(1)+K_vec_y*D(2)));
+fig = figure(1);
+first_iter = true;
+[time, PDP, BR_response] = single_frame_record(curSettings,filter_type)
+while(1)
+    [time, PDP, BR_response] = record(curSettings,filter_type);
+    figure(fig);
+    plot(time,20*log10(abs(PDP./max(abs(PDP)))));
+    hold on;
+    plot(time, 20*log10(abs(BR_response./max(abs(BR_response)))));
+    hold off;
+    if first_iter
+        ylim([0 2]);
+        xlabel('Distance[m]');
+        ylabel('Normalized amplitude[dB]');
+        legend('Normalized non - Coherent summation','Normalized Coherent summation');
+    end
+    first_iter = false;
 end
-
-%calculate and plot the steering response
-BR_response = ifft(mean(H.*Smat),Nfft,2);
-hold on;
-plot(time_vector*1.5e8, 20*log10(abs(BR_response./max(abs(BR_response)))));
-legend('Normalized non - Coherent summation','Normalized Coherent summation');
-

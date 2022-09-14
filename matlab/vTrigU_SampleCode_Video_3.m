@@ -7,7 +7,7 @@ vtrigU.vtrigU.Init();
 %Set setting structure
 mySettings.freqRange.freqStartMHz = 62*1000;
 mySettings.freqRange.freqStopMHz = 67*1000;
-mySettings.freqRange.numFreqPoints = 150;
+mySettings.freqRange.numFreqPoints = 150;%150
 mySettings.rbw_khz = 40;
 mySettings.txMode = vtrigU.TxMode.LOW_RATE;
 vtrigU.vtrigU.ApplySettings(mySettings.freqRange.freqStartMHz,mySettings.freqRange.freqStopMHz, mySettings.freqRange.numFreqPoints, mySettings.rbw_khz, mySettings.txMode );
@@ -81,9 +81,9 @@ end
 while(1)
     first_iter=true;
     input('continue?');
+    nrecs = 5000;
     recs = zeros([size(TxRxPairs,1),size(freq,2),nrecs]);
     % profile on;
-    nrecs = 50;
     for kk = 1:nrecs
         %src = [0 0 1;0 1 1;0 -1 1;0,0,2;0,-1,2; 0,1,2;0,0,3;0,-1,3;0,1,3];Pn = -130;
         %src = [0,-0.05,1;0,0.05,1];

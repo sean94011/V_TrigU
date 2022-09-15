@@ -1,4 +1,5 @@
-function channel_response_plot(X_RF, fig)
+function channel_response_plot(smat_size, X_RF, fig)
+    global freq
     figure(fig);
     clf; hold on;
     for ll = 1:smat_size(1)

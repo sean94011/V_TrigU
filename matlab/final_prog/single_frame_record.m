@@ -1,5 +1,5 @@
 function [X_RF, X, y_cart, PDP] = single_frame_record(idx)
-    global TxRxPairs freq Xgrid Ygrid Zgrid H2;
+    global TxRxPairs freq Xgrid Ygrid Zgrid H2 Nfft f_res;
     %% Load Library
     % add DOTNET assembly
     NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
@@ -8,13 +8,15 @@ function [X_RF, X, y_cart, PDP] = single_frame_record(idx)
     vtrigU.vtrigU.Record();
     rec = double(vtrigU.vtrigU.GetRecordingResult(vtrigU.SignalCalibration.DEFAULT_CALIBRATION));
     X = rec;
+    N_freq = length(freq);
     
     %Convert and reshape result to matlab complex matrix
     smat_size = [size(TxRxPairs,1),size(freq,2),2];
     my_perms = [1,3,2];
     X = reshape(X,smat_size(my_perms));
     X = ipermute(X,my_perms);
-    X_RF = X(:,:,1)+ 1j*X(:,:,2);
+    X = X(:,:,1)+ 1j*X(:,:,2);
+    X_RF = X;
     
     if idx == 1
         % Identify resonant frequencies 

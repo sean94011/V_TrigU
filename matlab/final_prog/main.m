@@ -3,7 +3,7 @@ clear;
 close all;
 
 %% Mode Selection
-mode = input("Choose a mode(\n   Default -> Normal Recording, \n   1 -> Recording Profiles Analysis, \n   2 -> RBW Analysis, \n   3 -> Freq BW Analysis, \n   4 -> Freq Points Analysis\n): ");
+mode = input("Choose a mode(\n   0 -> Normal Recording, \n   1 -> Recording Profiles Analysis, \n   2 -> RBW Analysis, \n   3 -> Freq BW Analysis, \n   4 -> Freq Points Analysis\n): ");
 
 switch mode
     case 1

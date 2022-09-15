@@ -2,7 +2,7 @@ function point_cloud_plot(y_cart, first_iter)
     global xgrid ygrid zgrid Xgrid Ygrid Zgrid;
     if min([length(xgrid),length(ygrid),length(zgrid)])>2
         th = abs(y_cart)>1;
-        figure(fig(2));
+        figure(fig);
         scatter3(Xgrid(th),Ygrid(th),Zgrid(th),20*log10(abs(y_cart(th))),20*log10(abs(y_cart(th))))
         if first_iter 
             title('Point Cloud');xlabel('x');ylabel('y');zlabel('z');daspect([1,1,1]);

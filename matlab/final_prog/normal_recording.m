@@ -1,4 +1,7 @@
 function normal_recording()
+%% Reset Workspace & Clear Data
+clear;
+close all;
     %% Load Library
     % add DOTNET assembly
     NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
@@ -7,7 +10,7 @@ function normal_recording()
     import vtrigU.*;
 
     % add plotting functions
-    addpath('/plot/*.m')
+    addpath('plot\')
     
     %% Setup Radar
     % initialize the device                                            
@@ -22,9 +25,10 @@ function normal_recording()
     end
 
     % Apply the above setting
-    vtrigU.ApplySettings(curSettings)
-    global TxRxPairs freq;
-    dist_vec = setup();
+    vtrigU.ApplySettings(curSettings.freqRange.freqStartMHz,curSettings.freqRange.freqStopMHz, curSettings.freqRange.numFreqPoints, curSettings.rbw_khz, curSettings.txMode)
+    global TxRxPairs freq Nfft;
+    [Nfft, dist_vec] = setup();
+    smat_size = [size(TxRxPairs,1),size(freq,2),2];
     
     %get antennas locations from script
     vtrigU_ants_location;
@@ -47,9 +51,9 @@ function normal_recording()
         for idx = 1:nrecs
             recs = zeros([size(TxRxPairs,1),size(freq,2),nrecs]);
             [X_RF, X, y_cart, PDP] = single_frame_record(idx);
-            recs(:,:,kk) = X;
+            recs(:,:,idx) = X;
             if idx == 1
-                channel_response_plot(X_RF, fig(1));
+                channel_response_plot(smat_size, X_RF, fig(1));
             end
 
             % Plot

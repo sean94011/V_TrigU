@@ -1,4 +1,4 @@
-function dist_vec = setup()
+function [Nfft,dist_vec] = setup()
     global TxRxPairs freq xgrid ygrid zgrid Xgrid Ygrid Zgrid H2;
     %% Load Library
     % add DOTNET assembly

@@ -3,7 +3,7 @@ function yz_slice_plot(y_cart, fig, first_iter)
     %% Plot Y-Z Slice
     if and(min([length(ygrid),length(zgrid)])>2,length(xgrid)<=2)
         y_yz = 20*log10(rssq(y_cart(:,find(xgrid>=xgrid(1),1):find(xgrid>=xgrid(end),1),:),2));
-        figure(fig(2));ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
+        figure(fig);ax=pcolor(squeeze(Ygrid(:,1,:)),squeeze(Zgrid(:,1,:)),squeeze(y_yz));
         set(ax,'EdgeColor', 'none');
         if first_iter 
             set(gca,'NextPlot','replacechildren');

@@ -1,119 +1,44 @@
-function [time, PDP, BR_response] = single_frame_record(curSettings)
-%% Load Library
+function [X_RF, X, y_cart, PDP] = single_frame_record(idx)
+    global TxRxPairs freq Xgrid Ygrid Zgrid H2;
+    %% Load Library
+    % add DOTNET assembly
+    NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
 
-% add DOTNET assembly
-NET.addAssembly([getenv('programfiles'),'\Vayyar\vtrigU\bin\vtrigU.CSharp.dll']);
+    %% Start Recording
+    vtrigU.vtrigU.Record();
+    rec = double(vtrigU.vtrigU.GetRecordingResult(vtrigU.SignalCalibration.DEFAULT_CALIBRATION));
+    X = rec;
+    
+    %Convert and reshape result to matlab complex matrix
+    smat_size = [size(TxRxPairs,1),size(freq,2),2];
+    my_perms = [1,3,2];
+    X = reshape(X,smat_size(my_perms));
+    X = ipermute(X,my_perms);
+    X_RF = X(:,:,1)+ 1j*X(:,:,2);
+    
+    if idx == 1
+        % Identify resonant frequencies 
+        thresh = 3;
+        lnconv = min(max(floor(N_freq/8)*2+1,floor(50/(freq(2)-freq(1)))*2+1),...
+                 floor(3*N_freq/8)*2+1); %conv length between 1/4 and 3/4 N_freq
+        c2 = -ones(lnconv,1)/(lnconv-1);
+        c2((lnconv+1)/2) = 1;
+        padsig = 20*log10(rssq(X,1));
+        padsig = [padsig((lnconv-1)/2:-1:1),padsig,padsig(end:-1:end-(lnconv-1)/2+1)]; 
+        padsig = conv(padsig,c2,'valid');        
+        f_res = padsig>thresh;
+    end
 
-% Load Module
-import vtrigU.*;
+    %Remove resonant frequencies
+    X = X .* (1-f_res);
+    
+    %convert to complex time domain signal
+    x = ifft(X,Nfft,2);
+   
+    y_cart = reshape(H2*reshape(X,[],1),size(Xgrid));
 
-%% Get Radar Parameters
-
-%Validate settings
-vtrigU.vtrigU.ValidateSettings(curSettings);
-
-%Get antenna pairs and convert to matlab matrix
-ants_pairs = vtrigU.vtrigU.GetAntennaPairs(curSettings.txMode);
-TxRxPairs = zeros(ants_pairs.Length,2);
-for ii = 1: ants_pairs.Length
-    TxRxPairs(ii,1) = double(ants_pairs(ii).tx);
-    TxRxPairs(ii,2) = double(ants_pairs(ii).rx);
+    %Create and show power delay profile - non coherent summation
+    PDP = rssq(x,1);
 end
 
-%Get used frequencies in Hz
-Freqs = double(vtrigU.GetFreqVector_MHz())*1e6;
-
-%get antennas locations from script
-vtrigU_ants_location;
-
-%Define constants
-N_txrx = size(TxRxPairs,1);
-N_freq = length(freq);
-c = 3e8; %SOL (m/s)
-
-Nfft = 2^(ceil(log2(size(freq,2)))+1);
-Ts = 1/Nfft/(freq(2)-freq(1)+1e-16); %Avoid nan checks
-time_vec = (0:Ts:Ts*(Nfft-1));
-dist_vec = time_vec*1.5e8; %distance in meters
-
-%%
-xgrid = [0.18,0.18];%-0.3:0.1:0.3;
-ygrid = -0.3:0.03:0.3;
-zgrid = 0.1:0.02:1;
-[Xgrid,Ygrid,Zgrid]=meshgrid(xgrid,ygrid,zgrid);
-
-src = reshape(cat(4,Xgrid,Ygrid,Zgrid),[],3);
-src2 = permute(src,[3,2,4,1]);
-
-% Use Radar equation to find total loss
-% Pe/Ps = (Gtx*Grx*RCS*lambda^2)/((4pi)^3*|Rtx|^2*|Rrx|^2)
-c = physconst('lightspeed'); %(m/s)
-Rvec = src2-VtrigU_ants_location;
-
-Rmag = rssq(Rvec,2);
-Rtheta = atan2(rssq(Rvec(:,1:2,:,:),2),Rvec(:,3,:,:));
-Rphi = atan2(Rvec(:,2,:,:),Rvec(:,1,:,:));
-Sphase = 2*pi*Rmag.*freq/c; %Electrical Length in Radians
-RCS = 1; %m^2
-lambda = c./freq; csf = sqrt(RCS).*lambda./((4*pi).^(3/2));
-Smag = 10^(5.8/20)*RadiationPattern(Rtheta,Rphi)./Rmag;
-H2 = zeros(length(TxRxPairs),length(freq),1,length(src2));
-for ii = 1:length(TxRxPairs)
-    tx = TxRxPairs(ii,1); rx = TxRxPairs(ii,2);
-    H2(ii,:,:,:) = 1./(csf.*Smag(tx,:,:,:).*Smag(rx,:,:,:).*...
-              exp(-1j.*(Sphase(tx,:,:,:)+Sphase(rx,:,:,:))));
-end
-H2 = reshape(permute(H2,[4,1,2,3]),length(src2),[]); %xyz x txrx x freq
-size(H2)
-
-%% Record the Scanning
-
-% Do a single record
-vtrigU.Record();
-
-%Read  calibrated result and convert to matlab complex matrix
-Record_result = vtrigU.GetRecordingResult(SignalCalibration.DEFAULT_CALIBRATION);
-Smat = double(Record_result);
-Smat = Smat(1:2:end) + 1i*Smat(2:2:end);
-Smat = reshape(Smat,size(TxRxPairs,1),size(Freqs,2));
-
-[rows, cols] = size(Smat);
-Smat = Smat ./ repmat(Smat(25,:),[rows,1]);
-% for i = 25:1:71
-%     refDiv_Smat = refDiv_Smat + Smat ./ repmat(Smat(i,:),[rows,1]);
-% end
-% Smat = Smat ./ 48;
-
-%% Data Processing
-
-%convert to complex time domain signal
-Nfft = 2^(ceil(log2(size(Freqs,2)))+1);
-Smat_td = ifft(Smat,Nfft,2);
-Ts = 1/Nfft/(Freqs(2)-Freqs(1)+1e-16); %Avoid nan checks
-time_vector = 0:Ts:Ts*(Nfft-1);
-time = time_vector*1.5e8;
-
-%Create and show power delay profile - non coherent summation
-PDP = mean(abs(Smat_td),1);
-
-
-%get antennas locations from script
-vtrigU_ants_location;
-
-%Create a steering vector
-theta = 0.0; %sin(theta) = x/R;
-phi = 0.0;   %sin(phi) = y/R;
-K_vec_x = 2*pi*Freqs*sin(theta)/3e8;
-K_vec_y = 2*pi*Freqs*sin(phi)/3e8;
-
-%Create a steering matrix for all pairs location
-H = zeros(size(TxRxPairs,1),size(Freqs,2));
-for ii = 1: size(TxRxPairs,1)
-    D = VtrigU_ants_location(TxRxPairs(ii,1),:)+VtrigU_ants_location(TxRxPairs(ii,2),:);
-    H(ii,:) = exp(2*pi*1i*(K_vec_x*D(1)+K_vec_y*D(2)));
-end
-
-%calculate and plot the steering response
-BR_response = ifft(mean(H.*Smat),Nfft,2);
-end
 

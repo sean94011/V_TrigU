@@ -2,7 +2,7 @@ import numpy as np
 
 
 def ants_locations():
-    return np.array([[-0.0275, -0.0267, 0],
+    return np.array([[-0.0275, -0.0267, 0], # tx
                      [-0.0253, -0.0267, 0],
                      [-0.0231, -0.0267, 0],
                      [-0.0209, -0.0267, 0],
@@ -22,7 +22,7 @@ def ants_locations():
                      [ 0.0097, -0.0267, 0],
                      [ 0.0119, -0.0267, 0],
                      [ 0.0141, -0.0267, 0],
-                     [ 0.0274, -0.0133, 0],
+                     [ 0.0274, -0.0133, 0], # rx
                      [ 0.0274, -0.0112, 0],
                      [ 0.0274, -0.0091, 0],
                      [ 0.0274, -0.0070, 0],
@@ -45,3 +45,16 @@ def ants_locations():
 
 def RadiationPattern(theta, phi):
     return np.sqrt((np.cos(theta/2)**2)*((np.sin(phi)**2)+(np.cos(theta)*np.cos(phi))**2))
+
+def convert2db(arr):
+    return 20*np.log10((np.abs(arr/np.max(np.abs(arr)))))
+
+def rec2arr(rec):
+    recArr = []
+    for key in rec.keys():
+        recArr.append(rec[key])
+    return np.array(recArr)
+
+def computePDP(X,Nfft):
+    x = np.fft.ifft(X,Nfft,1)
+    return np.linalg.norm(x,axis=0)

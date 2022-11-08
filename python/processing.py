@@ -10,6 +10,8 @@ from scipy import constants
 
 from vtrigU_helper_functions import *
 
+file_start = time.time()
+print("loading constants...")
 # define some constants
 c = constants.c
 antsLocations = ants_locations()
@@ -27,10 +29,13 @@ Ts = 1/Nfft/(freq[1]-freq[0]+1e-16) # Avoid nan checks
 time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
 dist_vec = time_vec*(c/2) # distance in meters
 
+print("done...")
+print("")
+print("start constructing the grid...")
 # xgrid = np.array([0,0]
-xgrid = np.arange(-0.2, 0.2+0.025, 0.0215)
-ygrid = np.arange(-0.2, 0.2+0.025, 0.0215)
-zgrid = np.arange( 0.05, 1+0.025,   0.0215)
+xgrid = np.arange(-0.3, 0.3+0.025, 0.0215)
+ygrid = np.arange(-0.3, 0.3+0.025, 0.0215)
+zgrid = np.arange( 0.05, 2+0.025,   0.0215)
 
 [Xgrid,Ygrid,Zgrid] = np.meshgrid(xgrid,ygrid,zgrid)
 
@@ -57,10 +62,13 @@ for i in range(len(TxRxPairs)):
     H2[i,:,:,:] = 1/(csf.reshape(1,-1,1,1)*Smag[tx,:,:,:]*Smag[rx,:,:,:]*np.exp(-1j*(Sphase[tx,:,:,:]+Sphase[rx,:,:,:])))
 
 H2 = np.transpose(H2,[3,0,1,2]).reshape((src2.shape[3],-1))
+print("construction done...")
+print("")
 
 # define how many frames for the recording
 nframes = np.load("./constants/nframes.npy")
 
+print("start processing data...")
 # loop through the collected files
 directory = "./data"
 for scenario in os.listdir(directory):
@@ -97,38 +105,39 @@ for scenario in os.listdir(directory):
             y_cart = np.load("f{cur_folder}/processed_data/y_cart_{frame}.npy")
         print(f"...done. computation time: {comp_time}")
 
-
-        # plot 3D point cloud
-        if min([len(xgrid),len(ygrid),len(zgrid)])>2:
-            print("plotting 3D point cloud...")
-            th = abs(y_cart)>1500
-            plt.ion()
-            fig = plt.figure(figsize=(10,10))
-            ax = fig.add_subplot(projection='3d')   
-            ax.scatter(Xgrid[th],Ygrid[th],Zgrid[th])
-            scatter_arr = np.array([Xgrid[th],Ygrid[th],Zgrid[th]])
-            np.save(f"{cur_folder}/processed_data/scatter_frame_{frame}.npy", scatter_arr)
-            # ax.scatter(Xgrid*th,Ygrid*th,Zgrid*th, c='blue')
-            ax.view_init(0, 0)
-            if frame == 0:
-                ax.set_title('Point Cloud')
-                ax.set_xlabel('x')
-                ax.set_ylabel('y')
-                ax.set_label('z')
-                ax.set_aspect('auto')
-            plt.savefig(f'{cur_folder}/plots/point_cloud/point_cloud_frame_{frame}.png')
-            plt.close()
-            print("...done.")
+file_end = time.time()
+print(f"done... total time: {file_end-file_start}")
+        # # plot 3D point cloud
+        # if min([len(xgrid),len(ygrid),len(zgrid)])>2:
+        #     print("plotting 3D point cloud...")
+        #     th = abs(y_cart)>1500
+        #     plt.ion()
+        #     fig = plt.figure(figsize=(10,10))
+        #     ax = fig.add_subplot(projection='3d')   
+        #     ax.scatter(Xgrid[th],Ygrid[th],Zgrid[th])
+        #     scatter_arr = np.array([Xgrid[th],Ygrid[th],Zgrid[th]])
+        #     np.save(f"{cur_folder}/processed_data/scatter_frame_{frame}.npy", scatter_arr)
+        #     # ax.scatter(Xgrid*th,Ygrid*th,Zgrid*th, c='blue')
+        #     ax.view_init(0, 0)
+        #     if frame == 0:
+        #         ax.set_title('Point Cloud')
+        #         ax.set_xlabel('x')
+        #         ax.set_ylabel('y')
+        #         ax.set_label('z')
+        #         ax.set_aspect('auto')
+        #     plt.savefig(f'{cur_folder}/plots/point_cloud/point_cloud_frame_{frame}.png')
+        #     plt.close()
+        #     print("...done.")
 
         
-        # plot PDP
-        print("plotting PDP...")
-        PDP = computePDP(X,Nfft)
-        plt.figure(figsize=(20,5))
-        plt.plot(dist_vec,convert2db(PDP))
-        plt.ylim((-50,50))
-        plt.savefig(f'{cur_folder}/plots/PDP/PDP_frame_{frame}.png')
-        plt.close()
-        print("...done.")
-        print("")
+        # # plot PDP
+        # print("plotting PDP...")
+        # PDP = computePDP(X,Nfft)
+        # plt.figure(figsize=(20,5))
+        # plt.plot(dist_vec,convert2db(PDP))
+        # plt.ylim((-50,50))
+        # plt.savefig(f'{cur_folder}/plots/PDP/PDP_frame_{frame}.png')
+        # plt.close()
+        # print("...done.")
+        # print("")
 

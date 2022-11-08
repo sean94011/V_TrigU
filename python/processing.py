@@ -59,7 +59,7 @@ for i in range(len(TxRxPairs)):
 H2 = np.transpose(H2,[3,0,1,2]).reshape((src2.shape[3],-1))
 
 # define how many frames for the recording
-nframes = 1000
+nframes = np.load("./constants/nframes.npy")
 
 # loop through the collected files
 directory = "./data"

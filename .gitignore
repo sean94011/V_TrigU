@@ -1,3 +1,9 @@
+# VSCode Configuration Files
+.vscode/**
+
+# Test-purpose python notebook
+_test_.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

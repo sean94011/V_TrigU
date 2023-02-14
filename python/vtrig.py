@@ -304,13 +304,15 @@ class isens_vtrigU:
         ax.set_xlabel("Angle [deg]")
         ax.set_ylabel("Range [m]")
 
-    def interactive_heatmap_2d(self, arr, title='2-D Heat Map', method='music'):
+    def interactive_heatmap_2d(self, arr, title='2-D Heat Map', method='music_aoa'):
         init_fnum = 0
         cur_frame = np.abs(arr[init_fnum].T)
         fig, ax = plt.subplots(figsize=(10,8))
         plt.ion()
-        if method=='music':
+        if method=='music_aoa':
             extent = [0+self.aoa_offset, 180+self.aoa_offset, 0, np.max(self.dist_vec)]
+        elif method=='music_aod':
+            extent = [-41, 41, 0, np.max(self.dist_vec)]
         else:
             extent = [-90, 90, 0, np.max(self.dist_vec)] 
         img = ax.imshow(self.normalization(np.abs(arr[init_fnum,:,:].T)),origin='lower', interpolation=None, aspect='auto', extent=extent)
@@ -520,18 +522,19 @@ class isens_vtrigU:
             plt.show()
 
 
-    def music_aod_single_frame_pipeline(self, case='test/', scenario='move_z', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False):
+    def music_aod_single_frame_pipeline(self, case='test/', scenario='move_z', proArr=None, simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False, plot_heatmap=True, frame=50):
         if simulation:
             rec_signal = self.music_sim_signal()
             aod = self.compute_aod_music_single_frame(rec_signal=rec_signal, signal_dimension=signal_dimension, smoothing=smoothing, plot=plot_aod_spectrum)
         else:
-            # Load Data
-            calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
-            # Calibrate Data
-            proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
-            rec_signal = np.fft.ifft(proArr[50,:,self.center_ant,:],axis=1,n=self.Nfft)
+            if proArr is None:
+                # Load Data
+                calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
+                # Calibrate Data
+                proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
+            rec_signal = np.fft.ifft(proArr[frame,:,self.center_ant,:],axis=1,n=self.Nfft)
         
-            range_profile = np.real(np.fft.ifft(proArr[50,:,self.center_ant,:],n=self.Nfft, axis=1))
+            range_profile = np.real(np.fft.ifft(proArr[frame,:,self.center_ant,:],n=self.Nfft, axis=1))
             range_profile[:,np.where(self.dist_vec>2.5)] = 0
             range_profile[:,np.where(self.dist_vec<0.3)] = 0
             if self.enhance:
@@ -555,39 +558,53 @@ class isens_vtrigU:
             heat_map = np.squeeze(heat_map[:,np.where(np.abs(aod_angles) <= 41)])
 
             heat_map[peaks,:] *= 1000
-            plt.figure()
-            # extent = [-90+self.aod_offset, 90+self.aod_offset, 0, np.max(self.dist_vec)]
-            extent = [-41, 41, 0, np.max(self.dist_vec)]
             heat_map = self.normalization(np.abs(heat_map))
             angle_peaks = []
             for i in range(len(peaks)):
                 angle_peaks.append(find_peaks(np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))),height=self.peak_height)[0])
-            plt.figure()
-            plt.plot(aod_angles[np.where(np.abs(aod_angles) <= 41)],np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))))
-            plt.plot(aod_angles[np.where(np.abs(aod_angles) <= 41)][angle_peaks],np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:])))[angle_peaks],'o')
-            plt.show(block=True)
             angle_peaks = np.squeeze(angle_peaks)
             print(f'Target at: {self.dist_vec[peaks]} m & {aod_angles[angle_peaks]+9.15854324853229} deg in x direction')
-            plt.imshow(heat_map,origin='lower', interpolation=None, aspect='auto', extent=extent)
+            if plot_heatmap:
+                plt.figure()
+                plt.plot(aod_angles[np.where(np.abs(aod_angles) <= 41)],np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))))
+                plt.plot(aod_angles[np.where(np.abs(aod_angles) <= 41)][angle_peaks],np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:])))[angle_peaks],'o')
+                plt.show()
+                
+                plt.figure()
+                # extent = [-90+self.aod_offset, 90+self.aod_offset, 0, np.max(self.dist_vec)]
+                extent = [-41, 41, 0, np.max(self.dist_vec)]
+                plt.imshow(heat_map,origin='lower', interpolation=None, aspect='auto', extent=extent)
+                plt.colorbar()
+                plt.title('MUSIC AoD')
+                plt.xlabel("Angle [deg]")
+                plt.ylabel("Range [m]")
+                plt.grid()
+                plt.show()
+            return heat_map
 
-            plt.colorbar()
-            plt.title('MUSIC AoD')
-            plt.xlabel("Angle [deg]")
-            plt.ylabel("Range [m]")
-            plt.grid()
-            plt.show()
-
-    def music_pipeline(self, case='test/', scenario='move_z', cal_method=0, signal_dimension=3, smoothing=True):
+    def music_pipeline(self, case='test/', scenario='move_z', mode='aoa', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False):
         # Load Data
         calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
         # Calibrate Data
         proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
-        aoa = self.compute_aoa_music(X=proArr, signal_dimension=signal_dimension, smoothing=smoothing)
-        range_profile = np.fft.ifft(proArr[:,self.center_ant,self.center_ant,:],axis=1,n=self.Nfft)
-        heat_map = np.zeros((self.nframes, range_profile.shape[1], aoa.shape[1]))
-        for frame in range(self.nframes):
-            heat_map[frame,:,:] =  aoa[frame,:].reshape((-1,1))*range_profile[frame,:].reshape((1,-1))
-        self.interactive_heatmap_2d(heat_map)
+
+        pool = mp.Pool()
+        outputs = []
+        for i in range(self.nframes):
+            args = [case,scenario, proArr, simulation, cal_method, signal_dimension, smoothing, plot_aod_spectrum, False, i]
+            if mode == 'aoa':
+                outputs.append(pool.apply_async(self.compute_aoa_music_single_frame,args))
+            else:
+                outputs.append(pool.apply_async(self.compute_aod_music_single_frame,args))
+        pool.close()
+        heatmaps = [res.get() for res in outputs]
+        heatmaps = np.concatenate(heatmaps,axis=0)
+        self.interactive_heatmap_2d(heatmaps,method='music_aod')
+        
+        
+            
+
+        
 
 
 def main():

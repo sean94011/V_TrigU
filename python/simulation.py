@@ -46,25 +46,44 @@ plt.subplots_adjust(left=0.25, bottom=0.25)
 ax.set_xlabel("Range (m)")
 
 rp_vis_idx, rp_vis = get_vis_labels(np.arange(Nfft) * c / (2 * Nfft * (freq[1] - freq[0])), label_cnt=5, precision=1)
-plt.gca().set_xticks(rp_vis_idx, labels=rp_vis)
+ax.set_xticks(rp_vis_idx, labels=rp_vis)
 rp_plot, = ax.plot(np.abs(rp))
 
 freq_slider_ax = plt.axes([0.25, 0.1, 0.65, 0.03])
-freq_comp_slider = Slider(freq_slider_ax, 'Frequency Comp. Cnt', 0, N_freq-1, valinit=0, valstep=1)
-
-switch_slider_ax = plt.axes([0.25, 0.15, 0.65, 0.03])
-switch_slider = Slider(switch_slider_ax, 'Steps per Switch', 0, 10, valinit=0, valstep=1)
+freq_comp_slider = Slider(freq_slider_ax, 'Frequency Comp. Cnt', 0, N_freq-1, valinit=N_freq-1, valstep=1)
+switch_slider_ax = plt.axes([0.25, 0.07, 0.65, 0.03])
+switch_slider = Slider(switch_slider_ax, 'Steps per Switch', 0, 20, valinit=0, valstep=1)
+switch_offset_slider_ax = plt.axes([0.25, 0.04, 0.65, 0.03])
+switch_offset_slider = Slider(switch_offset_slider_ax, 'Switching Step Offset', 0, N_freq - 1, valinit=0, valstep=1)
+switch_instep_offset_slider_ax = plt.axes([0.25, 0.01, 0.65, 0.03])
+switch_instep_offset_slider = Slider(switch_instep_offset_slider_ax, 'Switching In-step Offset', 0, 1, valinit = 0, valstep=0.01)
 
 def calc_phase(val):
+    # Select numbers of steps
     trimmed_iq_sample = np.zeros_like(iq_sample)
     trimmed_iq_sample[:freq_comp_slider.val] = iq_sample[:freq_comp_slider.val]
+
     steps_per_switch = switch_slider.val
+    switch_offset = switch_offset_slider.val
+    # Modulation Sq. Wave
     if steps_per_switch > 0:
-        switch_mask = scipy.signal.square(pi * np.arange(Nfft) / steps_per_switch) > 0
+        switch_mask = scipy.signal.square(pi * (np.arange(Nfft) - switch_offset) / steps_per_switch) > 0
     else:
-        switch_mask = np.zeros(Nfft, dtype="bool")
+        switch_mask = np.zeros(Nfft)
+    switch_weights = np.zeros_like(switch_mask, dtype="float")
+
+    switch_instep_offset = switch_instep_offset_slider.val
+    for i in range(switch_mask.shape[0] - 1):
+        curr, next = switch_mask[i], switch_mask[i+1]
+        if curr == 0 and next == 1:
+            switch_weights[i] = switch_instep_offset
+        elif curr == 1 and next == 0:
+            switch_weights[i] = 1 - switch_instep_offset
+        else:
+            switch_weights[i] = curr
+
     switch_iq_sample = trimmed_iq_sample.copy()
-    switch_iq_sample[switch_mask] = 0
+    switch_iq_sample = np.multiply(switch_iq_sample, switch_weights)
     switch_rp_abs = np.abs(np.fft.ifft(switch_iq_sample))
     rp_plot.set_ydata(switch_rp_abs)
     fig.canvas.draw_idle()
@@ -72,5 +91,7 @@ def calc_phase(val):
 
 freq_comp_slider.on_changed(calc_phase)
 switch_slider.on_changed(calc_phase)
+switch_offset_slider.on_changed(calc_phase)
+switch_instep_offset_slider.on_changed(calc_phase)
 
 plt.show()

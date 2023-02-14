@@ -22,10 +22,10 @@ class isens_vtrigU:
     def __init__(self, peak_height=0.3, enhance=True, enhance_rate=100, interpolate=True) -> None:
         """ Load Parameters """
         # load setup parameters
-        self.freq = np.load('./data/test01162023/constants/freq.npy')
-        self.nframes = np.load('./data/test01162023/constants/nframes.npy')
-        self.TxRxPairs = np.load('./data/test01162023/constants/TxRxPairs.npy')
-        self.ants_locations = np.load('./data/test01162023/constants/ants_locations.npy')
+        self.freq = np.load('./constants/freq.npy')
+        self.nframes = np.load('./constants/nframes.npy')
+        self.TxRxPairs = np.load('./constants/TxRxPairs.npy')
+        self.ants_locations = np.load('./constants/ants_locations.npy')
         self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
         self.center_ant = 10
         self.peak_height = peak_height

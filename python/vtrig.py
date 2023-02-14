@@ -147,29 +147,31 @@ class isens_vtrigU:
         self.dist_vec = np.interp(x,xp,fp)
         return interpolated_signal
 
-    def enhance_target(self, signal):
+    def enhance_target(self, signal, plot=True):
         if len(signal.shape) == 4:
             for i in range(signal.shape[0]):
                 peaks = find_peaks(self.normalization(np.abs(signal[i,self.center_ant,self.center_ant,:])),height=self.peak_height)[0]
-                if i == 50:
+                if plot:
+                    if i == 50:
+                        plt.figure()
+                        plt.plot(self.dist_vec,self.normalization(np.abs(signal[i,self.center_ant,self.center_ant,:])))
+                        plt.plot(self.dist_vec[peaks],self.normalization(np.abs(signal[i,self.center_ant,self.center_ant,:]))[peaks],'o')
+                        plt.xlabel('Distance [m]')
+                        plt.ylabel('Normalized Magnitude')
+                        plt.title('Peak extraction')
+                        plt.show(block=True)
+                        print(f'Enhance Peak at: {self.dist_vec[peaks]}')
+                signal[i,:,:,peaks] *= self.enhance_rate
+        elif len(signal.shape) == 2:
+                peaks = find_peaks(self.normalization(np.abs(signal[self.center_ant,:])),height=self.peak_height)[0]
+                if plot:
                     plt.figure()
-                    plt.plot(self.dist_vec,self.normalization(np.abs(signal[i,self.center_ant,self.center_ant,:])))
-                    plt.plot(self.dist_vec[peaks],self.normalization(np.abs(signal[i,self.center_ant,self.center_ant,:]))[peaks],'o')
+                    plt.plot(self.dist_vec,self.normalization(np.abs(signal[self.center_ant,:])))
+                    plt.plot(self.dist_vec[peaks],self.normalization(np.abs(signal[self.center_ant,:]))[peaks],'o')
                     plt.xlabel('Distance [m]')
                     plt.ylabel('Normalized Magnitude')
                     plt.title('Peak extraction')
                     plt.show(block=True)
-                    print(f'Enhance Peak at: {self.dist_vec[peaks]}')
-                signal[i,:,:,peaks] *= self.enhance_rate
-        elif len(signal.shape) == 2:
-                peaks = find_peaks(self.normalization(np.abs(signal[self.center_ant,:])),height=self.peak_height)[0]
-                plt.figure()
-                plt.plot(self.dist_vec,self.normalization(np.abs(signal[self.center_ant,:])))
-                plt.plot(self.dist_vec[peaks],self.normalization(np.abs(signal[self.center_ant,:]))[peaks],'o')
-                plt.xlabel('Distance [m]')
-                plt.ylabel('Normalized Magnitude')
-                plt.title('Peak extraction')
-                plt.show(block=True)
                 print(f'Enhance Peak at: {self.dist_vec[peaks]}')
                 signal[:,peaks] *= self.enhance_rate
         return signal, peaks
@@ -225,8 +227,8 @@ class isens_vtrigU:
 
         # Estimate DOA 
         aoa = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
-        print(f'Max Peak at: {incident_angles[np.argmax(aoa)]-90+self.aoa_offset} deg')
-        print()
+        # print(f'Max Peak at: {incident_angles[np.argmax(aoa)]-90+self.aoa_offset} deg')
+        # print()
         if plot:
             # Get matplotlib axes object
             plt.figure()
@@ -276,10 +278,13 @@ class isens_vtrigU:
         scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
 
         # Estimate DOA 
+        # print('Computing AoD...')
         aod = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
-        aod_angles = incident_angles-90+self.aod_offset
-        print(f'Max Peak at: {aod_angles[np.where(np.abs(aod_angles) <= 41)][np.argmax(aod[np.where(np.abs(aod_angles) <= 41)])]} deg')
-        print()
+        # print('...Done')
+        # print()
+        # aod_angles = incident_angles-90+self.aod_offset
+        # print(f'Max Peak at: {aod_angles[np.where(np.abs(aod_angles) <= 41)][np.argmax(aod[np.where(np.abs(aod_angles) <= 41)])]} deg')
+        # print()
         if plot:
             # Get matplotlib axes object
             plt.figure()
@@ -522,7 +527,7 @@ class isens_vtrigU:
             plt.show()
 
 
-    def music_aod_single_frame_pipeline(self, case='test/', scenario='move_z', proArr=None, simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False, plot_heatmap=True, frame=50):
+    def music_aod_single_frame_pipeline(self, case='test/', scenario='move_z', proArr=None, simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False, plot_heatmap=True, plot_peaks=True, frame=50):
         if simulation:
             rec_signal = self.music_sim_signal()
             aod = self.compute_aod_music_single_frame(rec_signal=rec_signal, signal_dimension=signal_dimension, smoothing=smoothing, plot=plot_aod_spectrum)
@@ -538,9 +543,9 @@ class isens_vtrigU:
             range_profile[:,np.where(self.dist_vec>2.5)] = 0
             range_profile[:,np.where(self.dist_vec<0.3)] = 0
             if self.enhance:
-                range_profile, peaks = self.enhance_target(range_profile)
+                range_profile, peaks = self.enhance_target(range_profile, plot=plot_peaks)
             else:
-                _, peaks = self.enhance_target(range_profile)
+                _, peaks = self.enhance_target(range_profile, plot=plot_peaks)
             aod = []
             pool = mp.Pool()
             outputs = []
@@ -563,7 +568,11 @@ class isens_vtrigU:
             for i in range(len(peaks)):
                 angle_peaks.append(find_peaks(np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))),height=self.peak_height)[0])
             angle_peaks = np.squeeze(angle_peaks)
-            print(f'Target at: {self.dist_vec[peaks]} m & {aod_angles[angle_peaks]+9.15854324853229} deg in x direction')
+            try:
+                print(f'Target at: {self.dist_vec[peaks]} m & {aod_angles[angle_peaks]+9.15854324853229} deg in x direction')
+            except:
+                print('processing done')
+            print()
             if plot_heatmap:
                 plt.figure()
                 plt.plot(aod_angles[np.where(np.abs(aod_angles) <= 41)],np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))))
@@ -582,31 +591,31 @@ class isens_vtrigU:
                 plt.show()
             return heat_map
 
-    def music_pipeline(self, case='test/', scenario='move_z', mode='aoa', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False):
-        # Load Data
-        calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
-        # Calibrate Data
-        proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
+    def music_pipeline(self, case='test/', scenario='move_z', mode='aoa', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_spectrum=False):
+        if mode == 'aoa':
+            fname = f'aoa_music_SOI_{signal_dimension}.npy'
+        else:
+            fname = f'aod_music_SOI_{signal_dimension}.npy'
 
-        pool = mp.Pool()
-        outputs = []
-        for i in range(self.nframes):
-            args = [case,scenario, proArr, simulation, cal_method, signal_dimension, smoothing, plot_aod_spectrum, False, i]
-            if mode == 'aoa':
-                outputs.append(pool.apply_async(self.compute_aoa_music_single_frame,args))
-            else:
-                outputs.append(pool.apply_async(self.compute_aod_music_single_frame,args))
-        pool.close()
-        heatmaps = [res.get() for res in outputs]
-        heatmaps = np.concatenate(heatmaps,axis=0)
+        if fname in listdir(f'./data/{case}{scenario}/'):
+            heatmaps = np.load(f'./data/{case}{scenario}/{fname}')
+        else:
+            # Load Data
+            calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
+            # Calibrate Data
+            proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
+
+            heatmaps = []
+            for i in range(self.nframes):
+                print(f'frame: {i}')
+                if mode == 'aoa':
+                    heatmaps.append(self.music_aoa_single_frame_pipeline(case, scenario, proArr, simulation, cal_method, signal_dimension, smoothing, plot_spectrum, False, False, i).T)
+                else:
+                    heatmaps.append(self.music_aod_single_frame_pipeline(case, scenario, proArr, simulation, cal_method, signal_dimension, smoothing, plot_spectrum, False, False, i).T)
+            heatmaps = np.stack(heatmaps,axis=0)
+            np.save(f'./data/{case}{scenario}/{fname}',heatmaps)
         self.interactive_heatmap_2d(heatmaps,method='music_aod')
         
-        
-            
-
-        
-
-
 def main():
     plt.close()
     # current_case = 'test01312023/' # 2cf
@@ -617,10 +626,18 @@ def main():
     # my_vtrig.fft_pipeline(case=current_case, scenario='human_y_angle_-20',cal_method=0 ,all_case=False, plot='both', test_mode=True, show_ants=False)
     # my_vtrig.range_pipeline(case=current_case, scenario='human_x_angle_0')
     # my_vtrig.music_pipeline(case=current_case, scenario='cf_x_angle_-20',signal_dimension=1)
-    my_vtrig.music_aoa_single_frame_pipeline(case=current_case, scenario='cf_y_angle_+20',signal_dimension=1, plot_aoa_spectrum=False)
+    # my_vtrig.music_aoa_single_frame_pipeline(case=current_case, scenario='cf_y_angle_+20',signal_dimension=1, plot_aoa_spectrum=False)
     # my_vtrig.music_aod_single_frame_pipeline(case=current_case, scenario='cf_x_angle_0',signal_dimension=3, plot_aod_spectrum=False)
     # current_case = 'test01222023/' # x calibration
     # my_vtrig.music_aod_single_frame_pipeline(case=current_case, scenario='2cf_yy_angle_+-20',signal_dimension=5, plot_aod_spectrum=False)
+    angles = ['-40','-20','0','+20','+40']
+    for angle in angles:
+        my_vtrig.music_pipeline(case=current_case, scenario=f'cf_x_angle_{angle}', mode='aod', simulation=False, cal_method=0, signal_dimension=5, smoothing=True, plot_spectrum=False)
+
+    current_case = 'test01162023/'
+    directions = ['x','y','z']
+    for direction in directions:
+        my_vtrig.music_pipeline(case=current_case, scenario=f'cf_move_{direction}', mode='aod', simulation=False, cal_method=0, signal_dimension=5, smoothing=True, plot_spectrum=False)
 
 
 if __name__ == '__main__':

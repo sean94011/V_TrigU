@@ -149,6 +149,7 @@ class isens_vtrigU:
     # Load collected Data
     def load_data(self, scenario='move_z', case = 'test/'):
         # specify data path components
+
         data_path = os.path.join('./data/', case, "")
 
         if scenario in listdir(data_path):
@@ -158,6 +159,7 @@ class isens_vtrigU:
             # combine data paths
             raw_path = os.path.join(data_path, scenario, raw_data)
             cal_path = os.path.join(data_path, scenario, cal_data)
+            
             # processed_path = data_path + processed_data
 
             # load data
@@ -176,6 +178,7 @@ class isens_vtrigU:
             print('')
             sys.exit()
         
+
         return calArr, recArr, os.path.join(data_path, scenario, '')
 
     # Plot the Antenna Array
@@ -236,6 +239,7 @@ class isens_vtrigU:
         self.dist_vec = np.interp(x,xp,fp)
         return interpolated_signal
 
+
     def enhance_target(self, signal, plot=True):
         if len(signal.shape) == 4:
             for i in range(signal.shape[0]):
@@ -257,10 +261,12 @@ class isens_vtrigU:
                     plt.figure()
                     plt.plot(self.dist_vec,self.normalization(np.abs(signal[self.center_ant,:])))
                     plt.plot(self.dist_vec[peaks],self.normalization(np.abs(signal[self.center_ant,:]))[peaks],'o')
+
                     plt.xlabel('Distance [m]')
                     plt.ylabel('Normalized Magnitude')
                     plt.title('Peak extraction')
                     plt.show(block=True)
+
                 print(f'Enhance Peak at: {self.dist_vec[peaks]}')
                 signal[:,peaks] *= self.enhance_rate
         return signal, peaks
@@ -318,6 +324,7 @@ class isens_vtrigU:
         aoa = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
         # print(f'Max Peak at: {incident_angles[np.argmax(aoa)]-90+self.aoa_offset} deg')
         # print()
+        
         if plot:
             # Get matplotlib axes object
             plt.figure()
@@ -367,6 +374,7 @@ class isens_vtrigU:
         scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
 
         # Estimate DOA 
+
         # print('Computing AoD...')
         aod = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
         # print('...Done')
@@ -374,6 +382,7 @@ class isens_vtrigU:
         # aod_angles = incident_angles-90+self.aod_offset
         # print(f'Max Peak at: {aod_angles[np.where(np.abs(aod_angles) <= 41)][np.argmax(aod[np.where(np.abs(aod_angles) <= 41)])]} deg')
         # print()
+
         if plot:
             # Get matplotlib axes object
             plt.figure()
@@ -398,15 +407,18 @@ class isens_vtrigU:
         ax.set_xlabel("Angle [deg]")
         ax.set_ylabel("Range [m]")
 
+
     def interactive_heatmap_2d(self, arr, title='2-D Heat Map', method='music_aoa'):
         init_fnum = 0
         cur_frame = np.abs(arr[init_fnum].T)
         fig, ax = plt.subplots(figsize=(10,8))
         plt.ion()
+
         if method=='music_aoa':
             extent = [0+self.aoa_offset, 180+self.aoa_offset, 0, np.max(self.dist_vec)]
         elif method=='music_aod':
             extent = [-41, 41, 0, np.max(self.dist_vec)]
+
         else:
             extent = [-90, 90, 0, np.max(self.dist_vec)] 
         img = ax.imshow(self.normalization(np.abs(arr[init_fnum,:,:].T)),origin='lower', interpolation=None, aspect='auto', extent=extent)
@@ -416,6 +428,7 @@ class isens_vtrigU:
         ax.set_xlabel("Angle [deg]")
         ax.set_ylabel("Range [m]")
         ax.grid()
+
         fig.subplots_adjust(left=0.25, bottom=0.25)
         axframe = fig.add_axes([0.25, 0.1, 0.65, 0.03])
         frame_slider = Slider(
@@ -468,7 +481,6 @@ class isens_vtrigU:
         # if 
 
         
-
     def fft_pipeline(self, case='test/', scenario='move_z', cal_method=0, all_case=False, plot=None, test_mode=False, show_ants=False):
         if show_ants:
             self.plot_antennas()
@@ -666,10 +678,12 @@ class isens_vtrigU:
                 range_profile, peaks = self.enhance_target(range_profile, plot=plot_peaks)
             else:
                 _, peaks = self.enhance_target(range_profile, plot=plot_peaks)
+                
             aod = []
             pool = mp.Pool()
             outputs = []
             for range_bin in range(range_profile.shape[1]):
+
                 if range_bin in peaks:
                     rec_signal = range_profile[:,range_bin].reshape((-1,1))
                     # print(rec_signal.shape)
@@ -688,6 +702,7 @@ class isens_vtrigU:
             heat_map = np.squeeze(heat_map[:,np.where(np.abs(aod_angles) <= 41)])
 
             heat_map[peaks,:] *= 1000
+
             heat_map = self.normalization(np.abs(heat_map))
             angle_peaks = []
             for i in range(len(peaks)):

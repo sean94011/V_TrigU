@@ -7,6 +7,8 @@
 import numpy as np
 import sys
 import multiprocessing as mp
+import vtrigU as vtrig
+import os
 from scipy.signal import find_peaks
 from matplotlib import pyplot as plt
 from scipy.constants import c
@@ -19,13 +21,20 @@ from pyargus.directionEstimation import *
 
 class isens_vtrigU:
 
-    def __init__(self, peak_height=0.3, enhance=True, enhance_rate=100, interpolate=True) -> None:
+    def __init__(
+            self, 
+            peak_height = 0.3, 
+            enhance = True, 
+            enhance_rate = 100, 
+            interpolate = True
+        ) -> None:
         """ Load Parameters """
         # load setup parameters
         self.freq = np.load('./data/test01162023/constants/freq.npy')
         self.nframes = np.load('./data/test01162023/constants/nframes.npy')
         self.TxRxPairs = np.load('./data/test01162023/constants/TxRxPairs.npy')
         self.ants_locations = np.load('./data/test01162023/constants/ants_locations.npy')
+        
         self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
         self.center_ant = 10
         self.peak_height = peak_height
@@ -51,6 +60,86 @@ class isens_vtrigU:
 
 
     """ Helper Functions """
+    # def fname_process(self, rec)
+
+    def rec2arr(self, rec):
+        recArr = []
+        for key in rec.keys():
+            recArr.append(rec[key])
+        return np.array(recArr)
+
+    # scan
+    def scan_setup(self, 
+                   start_freq = 62.0*1000,
+                   stop_freq = 69.0*1000,
+                   n_freq = 150,
+                   rbw = 80.0,
+                   scan_profile = vtrig.VTRIG_U_TXMODE__LOW_RATE
+                  ):
+        self.start_freq = start_freq
+        self.stop_freq = stop_freq
+        self.n_freq = n_freq
+        self.rbw = rbw
+        self.scan_profile = scan_profile
+
+        # initialize the device
+        vtrig.Init()
+
+        # set setting structure
+        vtrigSettings = vtrig.RecordingSettings(
+                vtrig.FrequencyRange(self.start_freq, # Start Frequency (in MHz)
+                                     self.stop_freq, # Stop  Frequency (in MHz) (66.5 for 5m) (68.0 for 3m)
+                                     self.n_freq),      # Number of Frequency Points (Maximum: 150)
+                self.rbw,                           # RBW (in KHz)
+                self.scan_profile  # Tx Mode (LOW: 20 Tx, MED: 10 Tx, HIGH: 4 Tx)
+                ) 
+
+        # validate settings
+        vtrig.ValidateSettings(vtrigSettings)
+
+        # apply settings
+        vtrig.ApplySettings(vtrigSettings)
+
+        # get antenna pairs and convert to numpy matrix
+        self.TxRxPairs = np.array(vtrig.GetAntennaPairs(vtrigSettings.mode))
+
+        # get used frequencies in Hz
+        self.freq = np.array(vtrig.GetFreqVector_MHz()) * 1e6
+
+        # define constants
+        Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
+        Ts = 1/Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
+        self.time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
+        self.dist_vec = self.time_vec*(c/2) # distance in meters
+
+    def scan_calibration(self, nrecs=10):
+        # Record the calibration frames
+        print("calibrating...")
+        calFrame = []
+        for i in range(nrecs):
+            vtrig.Record()
+            rec = vtrig.GetRecordingResult()
+            recArr = self.rec2arr(rec)
+            calFrame.append(recArr)
+        calFrame = np.array(calFrame)
+        print("calibration matrix collected!")
+        print()
+        return calFrame
+
+    def scan_data(self, nframes=100):
+        self.nframes = nframes
+        print("recording...")
+        recArrs = []
+        for i in range(self.nframes):
+            # write_read(str(motion_stage[i]))
+            vtrig.Record()
+            rec = vtrig.GetRecordingResult()
+            recArrs.append(self.rec2arr(rec))
+        recArrs = np.array(recArrs)
+        print("record done!")
+        print()
+        return recArrs
+
     # Compute Distance Vector
     def compute_dist_vec(self):
         Ts = 1/self.Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
@@ -60,15 +149,15 @@ class isens_vtrigU:
     # Load collected Data
     def load_data(self, scenario='move_z', case = 'test/'):
         # specify data path components
-        data_path = './data/' + case
+        data_path = os.path.join('./data/', case, "")
 
         if scenario in listdir(data_path):
-            raw_data = scenario + '/recording.npy'
-            cal_data = scenario + '/calibration.npy'
+            raw_data = 'recording.npy'
+            cal_data = 'calibration.npy'
 
             # combine data paths
-            raw_path = data_path + raw_data
-            cal_path = data_path + cal_data
+            raw_path = os.path.join(data_path, scenario, raw_data)
+            cal_path = os.path.join(data_path, scenario, cal_data)
             # processed_path = data_path + processed_data
 
             # load data
@@ -87,7 +176,7 @@ class isens_vtrigU:
             print('')
             sys.exit()
         
-        return calArr, recArr, data_path+scenario+'/'
+        return calArr, recArr, os.path.join(data_path, scenario, '')
 
     # Plot the Antenna Array
     def plot_antennas(self):
@@ -326,6 +415,7 @@ class isens_vtrigU:
         ax.set_title(title)
         ax.set_xlabel("Angle [deg]")
         ax.set_ylabel("Range [m]")
+        ax.grid()
         fig.subplots_adjust(left=0.25, bottom=0.25)
         axframe = fig.add_axes([0.25, 0.1, 0.65, 0.03])
         frame_slider = Slider(
@@ -348,7 +438,37 @@ class isens_vtrigU:
         button.on_clicked(reset)
         plt.show(block=True)
 
-    # Integrate everything into the processing pipeline
+    # pipelines
+    def scan_pipeline(self, 
+                      case='test/', 
+                      scenario='move_z', 
+                      start_freq = 62.0*1000,
+                      stop_freq = 69.0*1000,
+                      n_freq = 150,
+                      rbw = 80.0,
+                      scan_profile = vtrig.VTRIG_U_TXMODE__LOW_RATE,
+                      cal_nrecs=10,
+                      rec_nframes=100
+                     ):
+        
+        # parameter setup
+        self.scan_setup(start_freq=start_freq,
+                        stop_freq=stop_freq,
+                        n_freq=n_freq,
+                        rbw=rbw,
+                        scan_profile=scan_profile
+                       )
+        
+        # scan the calibration frames
+        cal_Arr = self.scan_calibration(nrecs=cal_nrecs)
+
+        # scan the data
+        rec_Arr = self.scan_data(nframes=rec_nframes)
+
+        # if 
+
+        
+
     def fft_pipeline(self, case='test/', scenario='move_z', cal_method=0, all_case=False, plot=None, test_mode=False, show_ants=False):
         if show_ants:
             self.plot_antennas()
@@ -550,12 +670,17 @@ class isens_vtrigU:
             pool = mp.Pool()
             outputs = []
             for range_bin in range(range_profile.shape[1]):
-                rec_signal = range_profile[:,range_bin].reshape((-1,1))
-                # print(rec_signal.shape)
-                # aod.append(self.compute_aod_music_single_frame(rec_signal=rec_signal, signal_dimension=signal_dimension, smoothing=smoothing, plot=plot_aod_spectrum))
-                outputs.append(pool.apply_async(self.compute_aod_music_single_frame,(rec_signal,signal_dimension,smoothing,plot_aod_spectrum)))
+                if range_bin in peaks:
+                    rec_signal = range_profile[:,range_bin].reshape((-1,1))
+                    # print(rec_signal.shape)
+                    # aod.append(self.compute_aod_music_single_frame(rec_signal=rec_signal, signal_dimension=signal_dimension, smoothing=smoothing, plot=plot_aod_spectrum))
+                    # outputs.append(pool.apply_async(self.compute_aod_music_single_frame,(rec_signal,signal_dimension,smoothing,plot_aod_spectrum)))
+                    output = pool.apply_async(self.compute_aod_music_single_frame,(rec_signal,signal_dimension,smoothing,plot_aod_spectrum))
+                    aod.append(output.get())
+                else:
+                    aod.append(np.zeros(self.Nfft))
             pool.close()
-            aod = [res.get() for res in outputs]
+            # aod = [res.get() for res in outputs]
 
             heat_map = np.array(aod)
             aod_angles = self.angle_vec-90+self.aod_offset
@@ -566,7 +691,7 @@ class isens_vtrigU:
             heat_map = self.normalization(np.abs(heat_map))
             angle_peaks = []
             for i in range(len(peaks)):
-                angle_peaks.append(find_peaks(np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))),height=self.peak_height)[0])
+                angle_peaks.append(find_peaks(np.squeeze(self.normalization(np.abs(heat_map[peaks[i],:]))),height=0.8)[0])
             angle_peaks = np.squeeze(angle_peaks)
             try:
                 print(f'Target at: {self.dist_vec[peaks]} m & {aod_angles[angle_peaks]+9.15854324853229} deg in x direction')
@@ -593,12 +718,13 @@ class isens_vtrigU:
 
     def music_pipeline(self, case='test/', scenario='move_z', mode='aoa', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_spectrum=False):
         if mode == 'aoa':
-            fname = f'aoa_music_SOI_{signal_dimension}.npy'
+            fname = f'aoa_music_SOI_{signal_dimension}_ph_{self.peak_height}.npy'
         else:
-            fname = f'aod_music_SOI_{signal_dimension}.npy'
+            fname = f'aod_music_SOI_{signal_dimension}_ph_{self.peak_height}.npy'
 
-        if fname in listdir(f'./data/{case}{scenario}/'):
-            heatmaps = np.load(f'./data/{case}{scenario}/{fname}')
+        dir_path = os.path.join('./data',case,scenario,'')
+        if fname in listdir(dir_path):
+            heatmaps = np.load(os.path.join(dir_path,fname))
         else:
             # Load Data
             calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
@@ -619,9 +745,9 @@ class isens_vtrigU:
 def main():
     plt.close()
     # current_case = 'test01312023/' # 2cf
-    current_case = 'test01242023/' # 1cf
+    current_case = 'test01242023' # 1cf
     # current_case = 'test01162023/'
-    my_vtrig = isens_vtrigU(peak_height=0.7, enhance_rate=100, enhance=True, interpolate=False)
+    my_vtrig = isens_vtrigU(peak_height=0.9, enhance_rate=100, enhance=True, interpolate=False)
     # my_vtrig.fft_pipeline(case=current_case, all_case=True, plot=None, test_mode=False, show_ants=False)
     # my_vtrig.fft_pipeline(case=current_case, scenario='human_y_angle_-20',cal_method=0 ,all_case=False, plot='both', test_mode=True, show_ants=False)
     # my_vtrig.range_pipeline(case=current_case, scenario='human_x_angle_0')
@@ -630,14 +756,14 @@ def main():
     # my_vtrig.music_aod_single_frame_pipeline(case=current_case, scenario='cf_x_angle_0',signal_dimension=3, plot_aod_spectrum=False)
     # current_case = 'test01222023/' # x calibration
     # my_vtrig.music_aod_single_frame_pipeline(case=current_case, scenario='2cf_yy_angle_+-20',signal_dimension=5, plot_aod_spectrum=False)
-    angles = ['-40','-20','0','+20','+40']
+    angles = ['0','+20','+40']
     for angle in angles:
-        my_vtrig.music_pipeline(case=current_case, scenario=f'cf_x_angle_{angle}', mode='aod', simulation=False, cal_method=0, signal_dimension=5, smoothing=True, plot_spectrum=False)
+        my_vtrig.music_pipeline(case=current_case, scenario=f'cf_y_angle_{angle}', mode='aod', simulation=False, cal_method=0, signal_dimension=1, smoothing=True, plot_spectrum=False)
 
-    current_case = 'test01162023/'
-    directions = ['x','y','z']
-    for direction in directions:
-        my_vtrig.music_pipeline(case=current_case, scenario=f'cf_move_{direction}', mode='aod', simulation=False, cal_method=0, signal_dimension=5, smoothing=True, plot_spectrum=False)
+    # current_case = 'test01162023/'
+    # directions = ['x','y','z']
+    # for direction in directions:
+    #     my_vtrig.music_pipeline(case=current_case, scenario=f'cf_move_{direction}', mode='aod', simulation=False, cal_method=0, signal_dimension=1, smoothing=True, plot_spectrum=False)
 
 
 if __name__ == '__main__':

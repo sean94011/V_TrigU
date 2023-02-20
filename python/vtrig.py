@@ -18,7 +18,13 @@ from matplotlib.widgets import Slider, Button
 from collections import OrderedDict
 from pyargus.directionEstimation import *
 
-
+"""**********************************************************************"""
+"""**********************************************************************"""
+"""**********************************************************************"""
+"""********************** Class: isens_vtrigU ***************************"""
+"""**********************************************************************"""
+"""**********************************************************************"""
+"""**********************************************************************"""
 class isens_vtrigU:
 
     def __init__(
@@ -33,7 +39,7 @@ class isens_vtrigU:
         self.freq = np.load('./data/test01162023/constants/freq.npy')
         self.nframes = np.load('./data/test01162023/constants/nframes.npy')
         self.TxRxPairs = np.load('./data/test01162023/constants/TxRxPairs.npy')
-        self.ants_locations = np.load('./data/test01162023/constants/ants_locations.npy')
+        self.ants_locations = self._ants_locations()
         
         self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
         self.center_ant = 10
@@ -59,92 +65,83 @@ class isens_vtrigU:
         print('')
 
 
-    """ Helper Functions """
-    # def fname_process(self, rec)
-
-    def rec2arr(self, rec):
-        recArr = []
-        for key in rec.keys():
-            recArr.append(rec[key])
-        return np.array(recArr)
-
-    # scan
-    def scan_setup(self, 
-                   start_freq = 62.0*1000,
-                   stop_freq = 69.0*1000,
-                   n_freq = 150,
-                   rbw = 80.0,
-                   scan_profile = vtrig.VTRIG_U_TXMODE__LOW_RATE
-                  ):
-        self.start_freq = start_freq
-        self.stop_freq = stop_freq
-        self.n_freq = n_freq
-        self.rbw = rbw
-        self.scan_profile = scan_profile
-
-        # initialize the device
-        vtrig.Init()
-
-        # set setting structure
-        vtrigSettings = vtrig.RecordingSettings(
-                vtrig.FrequencyRange(self.start_freq, # Start Frequency (in MHz)
-                                     self.stop_freq, # Stop  Frequency (in MHz) (66.5 for 5m) (68.0 for 3m)
-                                     self.n_freq),      # Number of Frequency Points (Maximum: 150)
-                self.rbw,                           # RBW (in KHz)
-                self.scan_profile  # Tx Mode (LOW: 20 Tx, MED: 10 Tx, HIGH: 4 Tx)
-                ) 
-
-        # validate settings
-        vtrig.ValidateSettings(vtrigSettings)
-
-        # apply settings
-        vtrig.ApplySettings(vtrigSettings)
-
-        # get antenna pairs and convert to numpy matrix
-        self.TxRxPairs = np.array(vtrig.GetAntennaPairs(vtrigSettings.mode))
-
-        # get used frequencies in Hz
-        self.freq = np.array(vtrig.GetFreqVector_MHz()) * 1e6
-
-        # define constants
-        Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
-        Ts = 1/Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
-        self.time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
-        self.dist_vec = self.time_vec*(c/2) # distance in meters
-
-    def scan_calibration(self, nrecs=10):
-        # Record the calibration frames
-        print("calibrating...")
-        calFrame = []
-        for i in range(nrecs):
-            vtrig.Record()
-            rec = vtrig.GetRecordingResult()
-            recArr = self.rec2arr(rec)
-            calFrame.append(recArr)
-        calFrame = np.array(calFrame)
-        print("calibration matrix collected!")
-        print()
-        return calFrame
-
-    def scan_data(self, nframes=100):
-        self.nframes = nframes
-        print("recording...")
-        recArrs = []
-        for i in range(self.nframes):
-            # write_read(str(motion_stage[i]))
-            vtrig.Record()
-            rec = vtrig.GetRecordingResult()
-            recArrs.append(self.rec2arr(rec))
-        recArrs = np.array(recArrs)
-        print("record done!")
-        print()
-        return recArrs
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """********************** Other Helper Functions ************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    # Return Vayyar VtrigU Radar Antennas' 3D Locations
+    def _ants_locations():
+        return np.array([[-0.0275, -0.0267, 0], # tx
+                        [-0.0253, -0.0267, 0],
+                        [-0.0231, -0.0267, 0],
+                        [-0.0209, -0.0267, 0],
+                        [-0.0187, -0.0267, 0],
+                        [-0.0165, -0.0267, 0],
+                        [-0.0143, -0.0267, 0],
+                        [-0.0122, -0.0267, 0],
+                        [-0.0100, -0.0267, 0],
+                        [-0.0078, -0.0267, 0],
+                        [-0.0056, -0.0267, 0],
+                        [-0.0034, -0.0267, 0],
+                        [-0.0012, -0.0267, 0],
+                        [ 0.0009, -0.0267, 0],
+                        [ 0.0031, -0.0267, 0],
+                        [ 0.0053, -0.0267, 0],
+                        [ 0.0075, -0.0267, 0],
+                        [ 0.0097, -0.0267, 0],
+                        [ 0.0119, -0.0267, 0],
+                        [ 0.0141, -0.0267, 0],
+                        [ 0.0274, -0.0133, 0], # rx
+                        [ 0.0274, -0.0112, 0],
+                        [ 0.0274, -0.0091, 0],
+                        [ 0.0274, -0.0070, 0],
+                        [ 0.0274, -0.0049, 0],
+                        [ 0.0274, -0.0028, 0],
+                        [ 0.0274, -0.0007, 0],
+                        [ 0.0275,  0.0014, 0],
+                        [ 0.0275,  0.0035, 0],
+                        [ 0.0275,  0.0056, 0],
+                        [ 0.0275,  0.0078, 0],
+                        [ 0.0275,  0.0099, 0],
+                        [ 0.0275,  0.0120, 0],
+                        [ 0.0274,  0.0141, 0],
+                        [ 0.0274,  0.0162, 0],
+                        [ 0.0275,  0.0183, 0],
+                        [ 0.0275,  0.0204, 0],
+                        [ 0.0275,  0.0225, 0],
+                        [ 0.0275,  0.0246, 0],
+                        [ 0.0275,  0.0267, 0]])
+    
+    # Plot the Antenna Array
+    def plot_antennas(self):
+        plt.figure(figsize=(10,10))
+        plt.subplot(121)
+        plt.plot(self.ants_locations[ 0:20,0],self.ants_locations[ 0:20,1],'^')
+        plt.plot(self.ants_locations[20:40,0],self.ants_locations[20:40,1],'^')
+        # plt.plot(np.mean(antsLocations[ 0:20,0]),np.mean(antsLocations[20:40,1]),'*')
+        plt.title('Uniform Linear Array')
+        plt.legend(['Tx Antenna','Rx Antenna'])
+        plt.grid()
+        plt.axis('scaled')
+        plt.xlim([-0.04,0.04])
+        plt.ylim([-0.04,0.04])
+        plt.show(block=True)
 
     # Compute Distance Vector
     def compute_dist_vec(self):
         Ts = 1/self.Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
         time_vec = np.linspace(0,Ts*(self.Nfft-1),num=self.Nfft)
         return time_vec*(c/2) # distance in meters
+    
+    # Normalize the signal to the range [0,1]
+    def normalization(self, x):
+        return (x - np.min(x))/(np.max(x)-np.min(x))
+    
+
+    # def fname_process(self, rec)
 
     # Load collected Data
     def load_data(self, scenario='move_z', case = 'test/'):
@@ -180,23 +177,206 @@ class isens_vtrigU:
         
 
         return calArr, recArr, os.path.join(data_path, scenario, '')
+    
+    # Plot 2D heatmaps
+    def heatmap_2D(self, arr, fnum):
+        fig, ax = plt.subplots(figsize=(8,8))
+        extent = [-90, 90, 0, np.max(self.dist_vec)]
+        ax.imshow(np.abs(arr[fnum].T),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
+        ax.set_title("2-D Heat Map")
+        ax.set_xlabel("Angle [deg]")
+        ax.set_ylabel("Range [m]")
 
-    # Plot the Antenna Array
-    def plot_antennas(self):
-        plt.figure(figsize=(10,10))
-        plt.subplot(121)
-        plt.plot(self.ants_locations[ 0:20,0],self.ants_locations[ 0:20,1],'^')
-        plt.plot(self.ants_locations[20:40,0],self.ants_locations[20:40,1],'^')
-        # plt.plot(np.mean(antsLocations[ 0:20,0]),np.mean(antsLocations[20:40,1]),'*')
-        plt.title('Uniform Linear Array')
-        plt.legend(['Tx Antenna','Rx Antenna'])
-        plt.grid()
-        plt.axis('scaled')
-        plt.xlim([-0.04,0.04])
-        plt.ylim([-0.04,0.04])
+
+    def interactive_heatmap_2d(self, arr, title='2-D Heat Map', method='music_aoa'):
+        init_fnum = 0
+        cur_frame = np.abs(arr[init_fnum].T)
+        fig, ax = plt.subplots(figsize=(10,8))
+        plt.ion()
+
+        if method=='music_aoa':
+            extent = [0+self.aoa_offset, 180+self.aoa_offset, 0, np.max(self.dist_vec)]
+        elif method=='music_aod':
+            extent = [-41, 41, 0, np.max(self.dist_vec)]
+
+        else:
+            extent = [-90, 90, 0, np.max(self.dist_vec)] 
+        img = ax.imshow(self.normalization(np.abs(arr[init_fnum,:,:].T)),origin='lower', interpolation=None, aspect='auto', extent=extent)
+
+        fig.colorbar(img)
+        ax.set_title(title)
+        ax.set_xlabel("Angle [deg]")
+        ax.set_ylabel("Range [m]")
+        ax.grid()
+
+        fig.subplots_adjust(left=0.25, bottom=0.25)
+        axframe = fig.add_axes([0.25, 0.1, 0.65, 0.03])
+        frame_slider = Slider(
+            ax=axframe,
+            label='frame',
+            valmin=0,
+            valmax=arr.shape[0]-1,
+            valinit=init_fnum,
+            valstep=1,
+        )
+        def update(val):
+            img.set_data(self.normalization(np.abs(arr[int(frame_slider.val)].T)))
+            fig.canvas.draw_idle()
+        frame_slider.on_changed(update)
+        resetax = fig.add_axes([0.8, 0.025, 0.1, 0.04])
+        button = Button(resetax, 'Reset', hovercolor='0.975')
+        def reset(event):
+            frame_slider.reset()
+
+        button.on_clicked(reset)
         plt.show(block=True)
 
-    # Compute ToF, AoA, AoD
+    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0):
+        # Load Data
+        calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
+        # Calibrate Data
+        for cal_method in [0,1]:
+            proArr = self.calibration(calArr,recArr,cal_method)
+            # Compute Range Profile
+            tof = self.compute_tof(proArr).T
+            # plot the range profile vs frame
+            extent = [0, 99, 0, np.max(self.dist_vec)]
+            plt.figure(figsize=(10,5))
+            plt.imshow(self.normalization(tof),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
+            plt.colorbar()
+            plt.title('Frame vs Distance')
+            plt.xlabel('Frame')
+            plt.ylabel('Distance [m]')
+            plt.show(block=True)
+    
+
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """***************** RADAR SCANNING Helper Functions ********************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+
+    # Convert the recorded dictionary to array
+    def rec2arr(self, rec):
+        recArr = []
+        for key in rec.keys():
+            recArr.append(rec[key])
+        return np.array(recArr)
+
+    # Scanning Setup
+    def scan_setup(self, 
+                   start_freq = 62.0*1000,
+                   stop_freq = 69.0*1000,
+                   n_freq = 150,
+                   rbw = 80.0,
+                   scan_profile = vtrig.VTRIG_U_TXMODE__LOW_RATE
+                  ):
+        
+        self.start_freq = start_freq
+        self.stop_freq = stop_freq
+        self.n_freq = n_freq
+        self.rbw = rbw
+        self.scan_profile = scan_profile
+
+        # initialize the device
+        vtrig.Init()
+
+        # set setting structure
+        vtrigSettings = vtrig.RecordingSettings(
+                vtrig.FrequencyRange(self.start_freq, # Start Frequency (in MHz)
+                                     self.stop_freq, # Stop  Frequency (in MHz) (66.5 for 5m) (68.0 for 3m)
+                                     self.n_freq),      # Number of Frequency Points (Maximum: 150)
+                self.rbw,                           # RBW (in KHz)
+                self.scan_profile  # Tx Mode (LOW: 20 Tx, MED: 10 Tx, HIGH: 4 Tx)
+                ) 
+
+        # validate settings
+        vtrig.ValidateSettings(vtrigSettings)
+
+        # apply settings
+        vtrig.ApplySettings(vtrigSettings)
+
+        # get antenna pairs and convert to numpy matrix
+        self.TxRxPairs = np.array(vtrig.GetAntennaPairs(vtrigSettings.mode))
+
+        # get used frequencies in Hz
+        self.freq = np.array(vtrig.GetFreqVector_MHz()) * 1e6
+
+        # define constants
+        self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
+        self.dist_vec = self.compute_dist_vec()
+
+    # Record the background data for calibration usage
+    def scan_calibration(self, nrecs=10):
+        # Record the calibration frames
+        print("calibrating...")
+        calFrame = []
+        for i in range(nrecs):
+            vtrig.Record()
+            rec = vtrig.GetRecordingResult()
+            recArr = self.rec2arr(rec)
+            calFrame.append(recArr)
+        calFrame = np.array(calFrame)
+        print("calibration matrix collected!")
+        print()
+        return calFrame
+
+    # scan the data
+    def scan_data(self, nframes=100):
+        self.nframes = nframes
+        print("recording...")
+        recArrs = []
+        for i in range(self.nframes):
+            # write_read(str(motion_stage[i]))
+            vtrig.Record()
+            rec = vtrig.GetRecordingResult()
+            recArrs.append(self.rec2arr(rec))
+        recArrs = np.array(recArrs)
+        print("record done!")
+        print()
+        return recArrs
+    
+    # Scanning pipeline by putting all the previous helper functions together
+    def scan_pipeline(self, 
+                      case='test/', 
+                      scenario='move_z', 
+                      start_freq = 62.0*1000,
+                      stop_freq = 69.0*1000,
+                      n_freq = 150,
+                      rbw = 80.0,
+                      scan_profile = vtrig.VTRIG_U_TXMODE__LOW_RATE,
+                      cal_nrecs=10,
+                      rec_nframes=100
+                     ):
+        
+        # parameter setup
+        self.scan_setup(start_freq=start_freq,
+                        stop_freq=stop_freq,
+                        n_freq=n_freq,
+                        rbw=rbw,
+                        scan_profile=scan_profile
+                       )
+        
+        # scan the calibration frames
+        cal_Arr = self.scan_calibration(nrecs=cal_nrecs)
+
+        # scan the data
+        rec_Arr = self.scan_data(nframes=rec_nframes)
+
+        # if 
+
+
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**************** SIGNAL PROCESSING Helper Functions ******************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+
+    # Calibraiton fucntions for background subtraction & interperiodic subtraction
     def calibration(self, calArr, recArr, method = 0):
         """
         calibration method:
@@ -214,10 +394,6 @@ class isens_vtrigU:
             proArr = recArr[1:recArr.shape[0],:,:] - recArr[0:recArr.shape[0]-1,:,:]
             
         return proArr
-
-
-    def normalization(self, x):
-        return (x - np.min(x))/(np.max(x)-np.min(x))
 
     def interpolation(self, signal):
         interpolated_signal = np.zeros([signal.shape[0],signal.shape[1],signal.shape[2]*2],dtype='complex')
@@ -273,8 +449,17 @@ class isens_vtrigU:
 
     def compute_tof(self, X, Nfft=512):
         x = np.fft.ifft(X,Nfft,2)
-        return np.linalg.norm(x,axis=1)
+        return np.linalg.norm(x,axis=1)    
+    
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """***************** FFT PROCESSING Helper Functions ********************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
 
+    # Compute Angle FFT from the range profile for estimating AoA
     def compute_aoa_fft(self, X):
         print('Computing AoA...')
         print('')
@@ -287,6 +472,7 @@ class isens_vtrigU:
         aoa = np.fft.fftshift(aoa,axes=1)
         return aoa
 
+    # Compute Angle FFT from the range profile for estimating AoD
     def compute_aod_fft(self, X):
         print('Computing AoD...')
         print('')
@@ -305,182 +491,7 @@ class isens_vtrigU:
         aod = np.fft.fftshift(aod,axes=1)
         return aod
     
-    """ MUSIC """
-
-    def compute_aoa_music_single_frame(self, rec_signal, signal_dimension=3, smoothing=True, plot=False, n_rx=20): 
-        if smoothing:
-            # Calculate the forward-backward spatially smotthed correlation matrix
-            R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
-        else:
-            # Estimating the spatial correlation matrix without spatial smoothing
-            R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
-
-        # Regenerate the scanning vector for the sub-array
-        array_alignment = np.arange(0, n_rx, 1)* self.d
-        incident_angles= self.angle_vec
-        scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
-
-        # Estimate DOA 
-        aoa = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
-        # print(f'Max Peak at: {incident_angles[np.argmax(aoa)]-90+self.aoa_offset} deg')
-        # print()
-        
-        if plot:
-            # Get matplotlib axes object
-            plt.figure()
-            axes = plt.axes()
-            
-            # Plot results on the same fiugre
-            DOA_plot(aoa, incident_angles+self.aoa_offset-90, log_scale_min = -50, axes=axes, alias_highlight=False)
-
-            axes.legend(["MUSIC"])
-
-            # Mark nominal incident angles
-            # axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = theta_1)
-            plt.show()
-        return aoa
-
-    def compute_aoa_music(self, X, n_rx=20, signal_dimension=3, smoothing=True, plot=False): 
-        # Regenerate the scanning vector for the sub-array
-        aoa = []
-        array_alignment = np.arange(0, n_rx, 1)* self.d
-        incident_angles= self.angle_vec
-        scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
-        for frame in range(X.shape[0]):
-            rec_signal = X.reshape((X.shape[0],20,20,-1))[frame,self.center_ant,:,:]
-            rec_signal = np.fft.ifft(rec_signal,axis=1,n=self.Nfft)
-            if smoothing:
-                # Calculate the forward-backward spatially smotthed correlation matrix
-                R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
-            else:
-                # Estimating the spatial correlation matrix without spatial smoothing
-                R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
-            # Estimate DOA 
-            aoa.append(DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension))
-
-        return np.array(aoa)
-    
-    def compute_aod_music_single_frame(self,rec_signal, signal_dimension=3, smoothing=True, plot=False, n_tx=20): 
-        if smoothing:
-            # Calculate the forward-backward spatially smotthed correlation matrix
-            R = spatial_smoothing(rec_signal.T, P=n_tx, direction="forward-backward")
-        else:
-            # Estimating the spatial correlation matrix without spatial smoothing
-            R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
-
-        # Regenerate the scanning vector for the sub-array
-        array_alignment = np.arange(0, n_tx, 1)* self.d
-        incident_angles= self.angle_vec
-        scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
-
-        # Estimate DOA 
-
-        # print('Computing AoD...')
-        aod = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
-        # print('...Done')
-        # print()
-        # aod_angles = incident_angles-90+self.aod_offset
-        # print(f'Max Peak at: {aod_angles[np.where(np.abs(aod_angles) <= 41)][np.argmax(aod[np.where(np.abs(aod_angles) <= 41)])]} deg')
-        # print()
-
-        if plot:
-            # Get matplotlib axes object
-            plt.figure()
-            axes = plt.axes()
-            
-            # Plot results on the same fiugre
-            DOA_plot(aod, incident_angles-90+self.aod_offset, log_scale_min = -50, axes=axes, alias_highlight=False)
-
-            axes.legend(["MUSIC"])
-
-            # Mark nominal incident angles
-            # axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = theta_1)
-            plt.show()
-        return aod
-
-    # Plot 2D heatmaps
-    def heatmap_2D(self, arr, fnum):
-        fig, ax = plt.subplots(figsize=(8,8))
-        extent = [-90, 90, 0, np.max(self.dist_vec)]
-        ax.imshow(np.abs(arr[fnum].T),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
-        ax.set_title("2-D Heat Map")
-        ax.set_xlabel("Angle [deg]")
-        ax.set_ylabel("Range [m]")
-
-
-    def interactive_heatmap_2d(self, arr, title='2-D Heat Map', method='music_aoa'):
-        init_fnum = 0
-        cur_frame = np.abs(arr[init_fnum].T)
-        fig, ax = plt.subplots(figsize=(10,8))
-        plt.ion()
-
-        if method=='music_aoa':
-            extent = [0+self.aoa_offset, 180+self.aoa_offset, 0, np.max(self.dist_vec)]
-        elif method=='music_aod':
-            extent = [-41, 41, 0, np.max(self.dist_vec)]
-
-        else:
-            extent = [-90, 90, 0, np.max(self.dist_vec)] 
-        img = ax.imshow(self.normalization(np.abs(arr[init_fnum,:,:].T)),origin='lower', interpolation=None, aspect='auto', extent=extent)
-
-        fig.colorbar(img)
-        ax.set_title(title)
-        ax.set_xlabel("Angle [deg]")
-        ax.set_ylabel("Range [m]")
-        ax.grid()
-
-        fig.subplots_adjust(left=0.25, bottom=0.25)
-        axframe = fig.add_axes([0.25, 0.1, 0.65, 0.03])
-        frame_slider = Slider(
-            ax=axframe,
-            label='frame',
-            valmin=0,
-            valmax=arr.shape[0]-1,
-            valinit=init_fnum,
-            valstep=1,
-        )
-        def update(val):
-            img.set_data(self.normalization(np.abs(arr[int(frame_slider.val)].T)))
-            fig.canvas.draw_idle()
-        frame_slider.on_changed(update)
-        resetax = fig.add_axes([0.8, 0.025, 0.1, 0.04])
-        button = Button(resetax, 'Reset', hovercolor='0.975')
-        def reset(event):
-            frame_slider.reset()
-
-        button.on_clicked(reset)
-        plt.show(block=True)
-
-    # pipelines
-    def scan_pipeline(self, 
-                      case='test/', 
-                      scenario='move_z', 
-                      start_freq = 62.0*1000,
-                      stop_freq = 69.0*1000,
-                      n_freq = 150,
-                      rbw = 80.0,
-                      scan_profile = vtrig.VTRIG_U_TXMODE__LOW_RATE,
-                      cal_nrecs=10,
-                      rec_nframes=100
-                     ):
-        
-        # parameter setup
-        self.scan_setup(start_freq=start_freq,
-                        stop_freq=stop_freq,
-                        n_freq=n_freq,
-                        rbw=rbw,
-                        scan_profile=scan_profile
-                       )
-        
-        # scan the calibration frames
-        cal_Arr = self.scan_calibration(nrecs=cal_nrecs)
-
-        # scan the data
-        rec_Arr = self.scan_data(nframes=rec_nframes)
-
-        # if 
-
-        
+    # FFT Processing pipeline by putting all the previous helper functions together
     def fft_pipeline(self, case='test/', scenario='move_z', cal_method=0, all_case=False, plot=None, test_mode=False, show_ants=False):
         if show_ants:
             self.plot_antennas()
@@ -565,25 +576,16 @@ class isens_vtrigU:
                     if plot == 'both':
                         self.interactive_heatmap_2d(aoaArr, 'AoA 2D Heatmap')
                         self.interactive_heatmap_2d(aodArr, 'AoD 2D Heatmap')
+    
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """***************** MUSIC PROCESSING Helper Functions ******************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
 
-    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0):
-        # Load Data
-        calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
-        # Calibrate Data
-        for cal_method in [0,1]:
-            proArr = self.calibration(calArr,recArr,cal_method)
-            # Compute Range Profile
-            tof = self.compute_tof(proArr).T
-            # plot the range profile vs frame
-            extent = [0, 99, 0, np.max(self.dist_vec)]
-            plt.figure(figsize=(10,5))
-            plt.imshow(self.normalization(tof),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
-            plt.colorbar()
-            plt.title('Frame vs Distance')
-            plt.xlabel('Frame')
-            plt.ylabel('Distance [m]')
-            plt.show(block=True)
-
+    # MUSIC simulation with user-specified target directions
     def music_sim_signal(self, thetas = [50, 80, 110]):
         # Number of antenna elements
         M = 20
@@ -605,7 +607,106 @@ class isens_vtrigU:
         # Create received signal array
         rec_signal = soi_matrix + noise
         return rec_signal 
+    
+    # Compute AoA by using MUSIC on the range profile, bin by bin, for a single frame
+    def compute_aoa_music_single_frame(self, rec_signal, signal_dimension=3, smoothing=True, plot=False, n_rx=20): 
+        if smoothing:
+            # Calculate the forward-backward spatially smotthed correlation matrix
+            R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
+        else:
+            # Estimating the spatial correlation matrix without spatial smoothing
+            R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
 
+        # Regenerate the scanning vector for the sub-array
+        array_alignment = np.arange(0, n_rx, 1)* self.d
+        incident_angles= self.angle_vec
+        scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
+
+        # Estimate DOA 
+        aoa = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
+        # print(f'Max Peak at: {incident_angles[np.argmax(aoa)]-90+self.aoa_offset} deg')
+        # print()
+        
+        if plot:
+            # Get matplotlib axes object
+            plt.figure()
+            axes = plt.axes()
+            
+            # Plot results on the same fiugre
+            DOA_plot(aoa, incident_angles+self.aoa_offset-90, log_scale_min = -50, axes=axes, alias_highlight=False)
+
+            axes.legend(["MUSIC"])
+
+            # Mark nominal incident angles
+            # axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = theta_1)
+            plt.show()
+        return aoa
+
+    # Compute AoA by using MUSIC on the range profile, using all of the range bins simultaneously, frame by frame
+    def compute_aoa_music(self, X, n_rx=20, signal_dimension=3, smoothing=True, plot=False): 
+        # Regenerate the scanning vector for the sub-array
+        aoa = []
+        array_alignment = np.arange(0, n_rx, 1)* self.d
+        incident_angles= self.angle_vec
+        scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
+        for frame in range(X.shape[0]):
+            rec_signal = X.reshape((X.shape[0],20,20,-1))[frame,self.center_ant,:,:]
+            rec_signal = np.fft.ifft(rec_signal,axis=1,n=self.Nfft)
+            if smoothing:
+                # Calculate the forward-backward spatially smotthed correlation matrix
+                R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
+            else:
+                # Estimating the spatial correlation matrix without spatial smoothing
+                R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
+            # Estimate DOA 
+            aoa.append(DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension))
+
+        return np.array(aoa)
+    
+    # Compute AoD by using MUSIC on the range profile, bin by bin, for a single frame
+    def compute_aod_music_single_frame(self,rec_signal, signal_dimension=3, smoothing=True, plot=False, n_tx=20): 
+        if smoothing:
+            # Calculate the forward-backward spatially smotthed correlation matrix
+            R = spatial_smoothing(rec_signal.T, P=n_tx, direction="forward-backward")
+        else:
+            # Estimating the spatial correlation matrix without spatial smoothing
+            R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
+
+        # Regenerate the scanning vector for the sub-array
+        array_alignment = np.arange(0, n_tx, 1)* self.d
+        incident_angles= self.angle_vec
+        scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
+
+        # Estimate DOA 
+
+        # print('Computing AoD...')
+        aod = DOA_MUSIC(R, scanning_vectors, signal_dimension=signal_dimension)
+        # print('...Done')
+        # print()
+        # aod_angles = incident_angles-90+self.aod_offset
+        # print(f'Max Peak at: {aod_angles[np.where(np.abs(aod_angles) <= 41)][np.argmax(aod[np.where(np.abs(aod_angles) <= 41)])]} deg')
+        # print()
+
+        if plot:
+            # Get matplotlib axes object
+            plt.figure()
+            axes = plt.axes()
+            
+            # Plot results on the same fiugre
+            DOA_plot(aod, incident_angles-90+self.aod_offset, log_scale_min = -50, axes=axes, alias_highlight=False)
+
+            axes.legend(["MUSIC"])
+
+            # Mark nominal incident angles
+            # axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = theta_1)
+            plt.show()
+        return aod
+
+    # Compute AoD by using MUSIC on the range profile, using all of the range bins simultaneously, frame by frame
+    # TODO
+    # def compute_aoa_music(self, X, n_rx=20, signal_dimension=3, smoothing=True, plot=False): 
+
+    # MUSIC Processing for AoA single frame by putting all the previous helper functions together
     def music_aoa_single_frame_pipeline(self, case='test/', scenario='move_z', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aoa_spectrum=False):
         if simulation:
             rec_signal = self.music_sim_signal()
@@ -658,7 +759,7 @@ class isens_vtrigU:
             plt.grid()
             plt.show()
 
-
+    # MUSIC Processing for AoA single frame by putting all the previous helper functions together
     def music_aod_single_frame_pipeline(self, case='test/', scenario='move_z', proArr=None, simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_aod_spectrum=False, plot_heatmap=True, plot_peaks=True, frame=50):
         if simulation:
             rec_signal = self.music_sim_signal()
@@ -731,6 +832,7 @@ class isens_vtrigU:
                 plt.show()
             return heat_map
 
+    # MUSIC Processing for either AoA or AoD for all frames by putting all the previous helper functions together
     def music_pipeline(self, case='test/', scenario='move_z', mode='aoa', simulation=False, cal_method=0, signal_dimension=3, smoothing=True, plot_spectrum=False):
         if mode == 'aoa':
             fname = f'aoa_music_SOI_{signal_dimension}_ph_{self.peak_height}.npy'
@@ -756,7 +858,15 @@ class isens_vtrigU:
             heatmaps = np.stack(heatmaps,axis=0)
             np.save(f'./data/{case}{scenario}/{fname}',heatmaps)
         self.interactive_heatmap_2d(heatmaps,method='music_aod')
-        
+
+
+"""**********************************************************************"""
+"""**********************************************************************"""
+"""**********************************************************************"""
+"""************************** Main Function *****************************"""
+"""**********************************************************************"""
+"""**********************************************************************"""
+"""**********************************************************************"""
 def main():
     plt.close()
     # current_case = 'test01312023/' # 2cf

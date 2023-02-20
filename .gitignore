@@ -1,7 +1,7 @@
 # VSCode Configuration Files
 .vscode/**
 
-# Mac stupid storing file
+# Mac storing file
 **/.DS_STORE
 
 # Test-purpose python notebook

@@ -31,6 +31,7 @@ class isens_vtrigU:
 
     def __init__(
             self, 
+            case = None,
             peak_height = 0.3, 
             enhance = True, 
             enhance_rate = 100, 
@@ -38,9 +39,21 @@ class isens_vtrigU:
         ) -> None:
         """ Load Parameters """
         # load setup parameters
-        self.freq = np.load('./data/test01162023/constants/freq.npy')
-        self.nframes = np.load('./data/test01162023/constants/nframes.npy')
-        self.TxRxPairs = np.load('./data/test01162023/constants/TxRxPairs.npy')
+        if case == None:
+            self.freq = np.load('./data/test01162023/constants/freq.npy')
+            self.nframes = np.load('./data/test01162023/constants/nframes.npy')
+            self.TxRxPairs = np.load('./data/test01162023/constants/TxRxPairs.npy')
+        else:
+            if case in listdir('./data'):
+                parameter_path = os.path.join('./data',case,'constants')
+                self.freq = np.load(os.path.join(parameter_path,'freq.npy'))
+                self.nframes = np.load(os.path.join(parameter_path,'nframes.npy'))
+                self.TxRxPairs = np.load(os.path.join(parameter_path,'TxRxPairs.npy'))
+            else:
+                print(f'Directory: {case} does not exist! Aborting the program...')
+                print('')
+                sys.exit()
+
         self.ants_locations = self._ants_locations()
         
         self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
@@ -75,7 +88,7 @@ class isens_vtrigU:
     """**********************************************************************"""
     """**********************************************************************"""
     # Return Vayyar VtrigU Radar Antennas' 3D Locations
-    def _ants_locations():
+    def _ants_locations(self):
         return np.array([[-0.0275, -0.0267, 0], # tx
                         [-0.0253, -0.0267, 0],
                         [-0.0231, -0.0267, 0],
@@ -135,15 +148,15 @@ class isens_vtrigU:
     # Compute Distance Vector
     def compute_dist_vec(self):
         Ts = 1/self.Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
-        time_vec = np.linspace(0,Ts*(self.Nfft-1),num=self.Nfft)
-        return time_vec*(c/2) # distance in meters
+        self.time_vec = np.linspace(0,Ts*(self.Nfft-1),num=self.Nfft)
+        return self.time_vec*(c/2) # distance in meters
     
     # Normalize the signal to the range [0,1]
     def normalization(self, x):
         return (x - np.min(x))/(np.max(x)-np.min(x))
 
     # Load collected Data
-    def load_data(self, case = 'test/', scenario='move_z', return_path=True):
+    def load_data(self, case = 'test/', scenario='move_z', return_path=False):
         # specify data path components
 
         data_path = os.path.join('./data/', case, "")
@@ -337,6 +350,7 @@ class isens_vtrigU:
     
         if scenario == None:
             scenario = input("Please Enter the Current Recording's Scenario Name")
+            print('')
         if scenario not in listdir(os.path.join('./data',case)):
             scenario = f'{scenario}_{current_time}'
             os.mkdir(os.path.join('./data',case,scenario))
@@ -913,7 +927,7 @@ def main():
     # current_case = 'test01312023/' # 2cf
     current_case = 'test01242023' # 1cf
     # current_case = 'test01162023/'
-    my_vtrig = isens_vtrigU(peak_height=0.9, enhance_rate=100, enhance=True, interpolate=False)
+    my_vtrig = isens_vtrigU(case=current_case, peak_height=0.9, enhance_rate=100, enhance=True, interpolate=False)
     # my_vtrig.fft_pipeline(case=current_case, all_case=True, plot=None, test_mode=False, show_ants=False)
     # my_vtrig.fft_pipeline(case=current_case, scenario='human_y_angle_-20',cal_method=0 ,all_case=False, plot='both', test_mode=True, show_ants=False)
     # my_vtrig.range_pipeline(case=current_case, scenario='human_x_angle_0')

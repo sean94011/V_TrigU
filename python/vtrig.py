@@ -4,19 +4,21 @@
 """
 
 """ Import Librarys """
-import numpy as np
-import sys
+from datetime import datetime
 import multiprocessing as mp
-import vtrigU as vtrig
 import os
-from scipy.signal import find_peaks
-from matplotlib import pyplot as plt
-from scipy.constants import c
-from os import listdir
-from math import ceil, log
-from matplotlib.widgets import Slider, Button
+import sys
 from collections import OrderedDict
+from math import ceil, log
+from os import listdir
+
+import numpy as np
+import vtrigU as vtrig
+from matplotlib import pyplot as plt
+from matplotlib.widgets import Button, Slider
 from pyargus.directionEstimation import *
+from scipy.constants import c
+from scipy.signal import find_peaks
 
 """**********************************************************************"""
 """**********************************************************************"""
@@ -139,12 +141,9 @@ class isens_vtrigU:
     # Normalize the signal to the range [0,1]
     def normalization(self, x):
         return (x - np.min(x))/(np.max(x)-np.min(x))
-    
-
-    # def fname_process(self, rec)
 
     # Load collected Data
-    def load_data(self, scenario='move_z', case = 'test/'):
+    def load_data(self, case = 'test/', scenario='move_z', return_path=True):
         # specify data path components
 
         data_path = os.path.join('./data/', case, "")
@@ -175,8 +174,10 @@ class isens_vtrigU:
             print('')
             sys.exit()
         
-
-        return calArr, recArr, os.path.join(data_path, scenario, '')
+        if return_path:
+            return calArr, recArr, os.path.join(data_path, scenario, '')
+        else:
+            return calArr, recArr
     
     # Plot 2D heatmaps
     def heatmap_2D(self, arr, fnum):
@@ -230,24 +231,6 @@ class isens_vtrigU:
 
         button.on_clicked(reset)
         plt.show(block=True)
-
-    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0):
-        # Load Data
-        calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
-        # Calibrate Data
-        for cal_method in [0,1]:
-            proArr = self.calibration(calArr,recArr,cal_method)
-            # Compute Range Profile
-            tof = self.compute_tof(proArr).T
-            # plot the range profile vs frame
-            extent = [0, 99, 0, np.max(self.dist_vec)]
-            plt.figure(figsize=(10,5))
-            plt.imshow(self.normalization(tof),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
-            plt.colorbar()
-            plt.title('Frame vs Distance')
-            plt.xlabel('Frame')
-            plt.ylabel('Distance [m]')
-            plt.show(block=True)
     
 
     """**********************************************************************"""
@@ -338,10 +321,33 @@ class isens_vtrigU:
         print()
         return recArrs
     
+    # dealing with directory creations
+    def dname_process(self, case, scenario):
+        now = datetime.now()
+        current_date = now.strftime("%m%d%Y")
+        current_time = now.strftime("%H%M%S")
+
+        if case == None or case not in listdir('./data'):
+            case == f'test{current_date}'
+            if case not in listdir('./data'):
+                print(f"The case does not exist in the current data directory, creating a new directory with name: {case} ...")
+            else:
+                print(f'Creating a new directory with name: {case} ...')
+            os.mkdir(os.path.join('./data',case))
+    
+        if scenario == None:
+            scenario = input("Please Enter the Current Recording's Scenario Name")
+        if scenario not in listdir(os.path.join('./data',case)):
+            scenario = f'{scenario}_{current_time}'
+            os.mkdir(os.path.join('./data',case,scenario))
+
+        current_path = os.path.join('./data',case,scenario,'')
+        return current_path
+    
     # Scanning pipeline by putting all the previous helper functions together
     def scan_pipeline(self, 
-                      case='test/', 
-                      scenario='move_z', 
+                      case=None, 
+                      scenario=None, 
                       start_freq = 62.0*1000,
                       stop_freq = 69.0*1000,
                       n_freq = 150,
@@ -365,7 +371,46 @@ class isens_vtrigU:
         # scan the data
         rec_Arr = self.scan_data(nframes=rec_nframes)
 
-        # if 
+        # setup the directories
+        current_path = self.dname_process(case, scenario)
+
+        # save both data
+        np.save(os.path.join(current_path,'calibration.npy'),cal_Arr)
+        np.save(os.path.join(current_path,'recording.npy'),rec_Arr)
+
+        return case, scenario
+
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """****************** ToF Processing Helper Functions *******************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+
+    # Compute the range profile with ifft and then take the norm
+    def compute_tof_ifft(self, X, Nfft=512):
+        x = np.fft.ifft(X,Nfft,2)
+        return np.linalg.norm(x,axis=1)    
+
+    # Pipeline for copmuting the range profile with the previous functions
+    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0):
+        # Load Data
+        calArr, recArr = self.load_data(scenario=scenario, case=case)
+        # Calibrate Data
+        for cal_method in [0,1]:
+            proArr = self.calibration(calArr,recArr,cal_method)
+            # Compute Range Profile
+            tof = self.compute_tof_ifft(proArr).T
+            # plot the range profile vs frame
+            extent = [0, 99, 0, np.max(self.dist_vec)]
+            plt.figure(figsize=(10,5))
+            plt.imshow(self.normalization(tof),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
+            plt.colorbar()
+            plt.title('Frame vs Distance')
+            plt.xlabel('Frame')
+            plt.ylabel('Distance [m]')
+            plt.show(block=True)
 
 
     """**********************************************************************"""
@@ -446,10 +491,6 @@ class isens_vtrigU:
                 print(f'Enhance Peak at: {self.dist_vec[peaks]}')
                 signal[:,peaks] *= self.enhance_rate
         return signal, peaks
-
-    def compute_tof(self, X, Nfft=512):
-        x = np.fft.ifft(X,Nfft,2)
-        return np.linalg.norm(x,axis=1)    
     
     """**********************************************************************"""
     """**********************************************************************"""
@@ -497,7 +538,7 @@ class isens_vtrigU:
             self.plot_antennas()
         if all_case == False:
             # Load Data
-            calArr, recArr, path = self.load_data(scenario=scenario, case=case)
+            calArr, recArr, path = self.load_data(scenario=scenario, case=case, return_path=True)
             # Calibrate Data
             proArr = self.calibration(calArr,recArr,cal_method)
             # Compute AoA & ToF
@@ -545,7 +586,7 @@ class isens_vtrigU:
                 if scenario == 'constants':
                     continue
                 # Load Data
-                calArr, recArr, path = self.load_data(scenario=scenario, case=case)
+                calArr, recArr, path = self.load_data(scenario=scenario, case=case, return_path=True)
                 print(f'Path: {path}')
                 print('')
                 # Calibrate Data
@@ -714,7 +755,7 @@ class isens_vtrigU:
 
         else:
             # Load Data
-            calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
+            calArr, recArr = self.load_data(scenario=scenario, case=case)
             # Calibrate Data
             proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
         
@@ -767,7 +808,7 @@ class isens_vtrigU:
         else:
             if proArr is None:
                 # Load Data
-                calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
+                calArr, recArr = self.load_data(scenario=scenario, case=case)
                 # Calibrate Data
                 proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
             rec_signal = np.fft.ifft(proArr[frame,:,self.center_ant,:],axis=1,n=self.Nfft)
@@ -844,7 +885,7 @@ class isens_vtrigU:
             heatmaps = np.load(os.path.join(dir_path,fname))
         else:
             # Load Data
-            calArr, recArr, _ = self.load_data(scenario=scenario, case=case)
+            calArr, recArr = self.load_data(scenario=scenario, case=case)
             # Calibrate Data
             proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
 

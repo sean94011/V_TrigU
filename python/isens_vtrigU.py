@@ -972,22 +972,20 @@ class isens_vtrigU:
         MN = len(self.TxRxPairs)
         corr_matrix = np.zeros((MN-1,MN-1),dtype='complex')
         Q = len(self.freq)
-        for i in range(MN-1):
-            l_1 = i
-            for j in np.arange(1,MN):
-                l_2 = j
-                St_1 = self.S_t(S, l_1, Q, loc)
-                St_2 = self.S_t(S, l_2, Q, loc)
-                corr_matrix[i,j-1] = St_1*St_2
+        St = []
+        for i in range(MN):
+            St.append(self.S_t(S,i,Q,loc))
+        St = np.array(St)
+        corr_matrix = St[:-1].reshape(1,-1) * St[1:].reshape(-1,1)
         return np.abs(np.sum(corr_matrix))
     
     def rc_3D_point_cloud(self, signal, x_grid=None, y_grid=None, z_grid=None):
-        if x_grid == None:
-            x_grid = np.arange(-3,3,0.5)
-        if y_grid == None:
-            y_grid = np.arange(-3,3,0.5)
-        if z_grid == None:
-            z_grid = np.arange(-3,3,0.5)
+        if x_grid is None:
+            x_grid = np.arange(-2,2,0.05)
+        if y_grid is None:
+            y_grid = np.arange(-2,2,0.05)
+        if z_grid is None:
+            z_grid = np.arange(0,3,0.05)
 
         point_cloud = np.zeros((len(x_grid),len(y_grid),len(z_grid)))
         pool = mp.Pool()
@@ -999,10 +997,17 @@ class isens_vtrigU:
         pool.close()
         return point_cloud
     
-    def plot_3D_point_cloud(self, point_cloud):
+    def plot_3D_point_cloud(self, point_cloud, meshgrids, th=0.8):
+        print('plotting...')
         fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(point_cloud)
+        ax = fig.add_subplot(projection='3d')
+        normalized_pc = self.normalization(point_cloud)
+        target_idx = abs(normalized_pc)>th
+        ax.scatter(meshgrids[0][target_idx], meshgrids[1][target_idx], meshgrids[2][target_idx])
+        ax.set_xlabel('x [m]')
+        ax.set_ylabel('y [m]')
+        ax.set_zlabel('z [m]')
+        ax.grid(True)
         plt.show()
 
 """**********************************************************************"""
@@ -1026,15 +1031,24 @@ def main():
     # my_vtrig.music_aod_single_frame_pipeline(case=current_case, scenario='cf_x_angle_0',signal_dimension=3, plot_aod_spectrum=False)
     # current_case = 'test01222023/' # x calibration
     # my_vtrig.music_aod_single_frame_pipeline(case=current_case, scenario='2cf_yy_angle_+-20',signal_dimension=5, plot_aod_spectrum=False)
-    angles = ['0','+20','+40']
-    for angle in angles:
-        my_vtrig.music_pipeline(case=current_case, scenario=f'cf_y_angle_{angle}', mode='aod', simulation=False, cal_method=0, signal_dimension=1, smoothing=True, plot_spectrum=False)
+    # angles = ['0','+20','+40']
+    # for angle in angles:
+    #     my_vtrig.music_pipeline(case=current_case, scenario=f'cf_y_angle_{angle}', mode='aod', simulation=False, cal_method=0, signal_dimension=1, smoothing=True, plot_spectrum=False)
 
     # current_case = 'test01162023/'
     # directions = ['x','y','z']
     # for direction in directions:
     #     my_vtrig.music_pipeline(case=current_case, scenario=f'cf_move_{direction}', mode='aod', simulation=False, cal_method=0, signal_dimension=1, smoothing=True, plot_spectrum=False)
-
+    current_scenario = 'cf_y_angle_0'
+    calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
+    proArr = my_vtrig.calibration(calArr,recArr,method=0)
+    x_grid = np.arange(-2,2,0.05)
+    y_grid = np.arange(-2,2,0.05)
+    z_grid = np.arange( 0,3,0.05)
+    x_grid_idx, y_grid_idx, z_grid_idx = np.meshgrid(x_grid, y_grid, z_grid)
+    meshgrids = [x_grid_idx, y_grid_idx, z_grid_idx]
+    point_cloud = my_vtrig.rc_3D_point_cloud(proArr[50,:,:],x_grid, y_grid, z_grid)
+    my_vtrig.plot_3D_point_cloud(point_cloud, meshgrids, th=0.5)
 
 if __name__ == '__main__':
     try:

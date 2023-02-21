@@ -30,7 +30,7 @@ dependencies:
   - openssl
   - sqlite
   - six
-  - appnope
+  # - appnope
   - wcwidth
   - ipython
   - debugpy

@@ -54,7 +54,7 @@ class isens_vtrigU:
                 print('')
                 sys.exit()
 
-        self.ants_locations = self._ants_locations()
+        self.ants_locations = self._ants_locations()[:,:-1]
         
         self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
         self.center_ant = 10
@@ -379,9 +379,13 @@ class isens_vtrigU:
                         scan_profile=scan_profile
                        )
         
+        input('Click Enter to record the background data...')
+        print('')
         # scan the calibration frames
         cal_Arr = self.scan_calibration(nrecs=cal_nrecs)
 
+        input('Click Enter to record the data...')
+        print('')
         # scan the data
         rec_Arr = self.scan_data(nframes=rec_nframes)
 
@@ -408,23 +412,31 @@ class isens_vtrigU:
         return np.linalg.norm(x,axis=1)    
 
     # Pipeline for copmuting the range profile with the previous functions
-    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0):
+    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False):
         # Load Data
         calArr, recArr = self.load_data(scenario=scenario, case=case)
         # Calibrate Data
-        for cal_method in [0,1]:
+        if cal_method == None:
+            cal_methods = [0,1]
+        else:
+            cal_methods = [cal_method]
+        tofs = []
+        for cal_method in cal_methods:
             proArr = self.calibration(calArr,recArr,cal_method)
             # Compute Range Profile
             tof = self.compute_tof_ifft(proArr).T
-            # plot the range profile vs frame
-            extent = [0, 99, 0, np.max(self.dist_vec)]
-            plt.figure(figsize=(10,5))
-            plt.imshow(self.normalization(tof),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
-            plt.colorbar()
-            plt.title('Frame vs Distance')
-            plt.xlabel('Frame')
-            plt.ylabel('Distance [m]')
-            plt.show(block=True)
+            tofs.append(tof.T)
+            if plot:
+                # plot the range profile vs frame
+                extent = [0, 99, 0, np.max(self.dist_vec)]
+                plt.figure(figsize=(10,5))
+                plt.imshow(self.normalization(tof),origin='lower', interpolation='nearest', aspect='auto', extent=extent)
+                plt.colorbar()
+                plt.title('Frame vs Distance')
+                plt.xlabel('Frame')
+                plt.ylabel('Distance [m]')
+                plt.show(block=True)
+        return np.squeeze(np.array(tofs))
 
 
     """**********************************************************************"""
@@ -914,6 +926,84 @@ class isens_vtrigU:
             np.save(f'./data/{case}{scenario}/{fname}',heatmaps)
         self.interactive_heatmap_2d(heatmaps,method='music_aod')
 
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """************** Reflection Coefficient 3D Imaging *********************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    """**********************************************************************"""
+    def R_l(self, l,cur_loc):
+        """
+        l: Index of TxRxPair
+        cur_loc: Targeting Location
+
+        Purpose: compute the average distance between the target and the l-th pair of transmitter and receiver
+        """
+        tx_idx = self.TxRxPairs[l,0]-1
+        rx_idx = self.TxRxPairs[l,1]-1
+        x_m, y_m = self.ants_locations[tx_idx,:]
+        x_n, y_n = self.ants_locations[rx_idx,:]
+        z_m, z_n = 0.0, 0.0
+        x_t, y_t, z_t = cur_loc
+        return (np.sqrt((x_m-x_t)**2 + (y_m-y_t)**2 + (z_m-z_t)**2)+np.sqrt((x_n-x_t)**2 + (y_n-y_t)**2 + (z_n-z_t)**2)) / 2
+
+    def S_t(self, S, l, Q, cur_loc):
+        """
+        S: Receieved Signal
+        l: Index of TxRxPair
+        Q: number of frequency points
+
+        Purpose: Convert the receieved signal in to time domain with specified target location; for TDBP imaging method
+        """
+
+        cur_R = self.R_l(l, cur_loc)
+
+        kq = 2*np.pi*self.freq/c
+        shift_element = np.exp(1j*2*kq*cur_R,dtype='complex')
+        
+        St = S[l,:]*shift_element
+        St = np.sum(St) / Q
+
+        return St
+
+    def reflection_coefficient(self, S, loc):
+        print(f'current location: {loc}')
+        MN = len(self.TxRxPairs)
+        corr_matrix = np.zeros((MN-1,MN-1),dtype='complex')
+        Q = len(self.freq)
+        for i in range(MN-1):
+            l_1 = i
+            for j in np.arange(1,MN):
+                l_2 = j
+                St_1 = self.S_t(S, l_1, Q, loc)
+                St_2 = self.S_t(S, l_2, Q, loc)
+                corr_matrix[i,j-1] = St_1*St_2
+        return np.abs(np.sum(corr_matrix))
+    
+    def rc_3D_point_cloud(self, signal, x_grid=None, y_grid=None, z_grid=None):
+        if x_grid == None:
+            x_grid = np.arange(-3,3,0.5)
+        if y_grid == None:
+            y_grid = np.arange(-3,3,0.5)
+        if z_grid == None:
+            z_grid = np.arange(-3,3,0.5)
+
+        point_cloud = np.zeros((len(x_grid),len(y_grid),len(z_grid)))
+        pool = mp.Pool()
+        for i, x in enumerate(x_grid):
+            for j, y in enumerate(y_grid):
+                for k, z in enumerate(z_grid):
+                    output = pool.apply_async(self.reflection_coefficient,(signal, np.array([x,y,z])))
+                    point_cloud[i,j,k] = output.get()
+        pool.close()
+        return point_cloud
+    
+    def plot_3D_point_cloud(self, point_cloud):
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(point_cloud)
+        plt.show()
 
 """**********************************************************************"""
 """**********************************************************************"""

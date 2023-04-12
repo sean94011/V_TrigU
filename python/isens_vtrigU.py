@@ -408,8 +408,16 @@ class isens_vtrigU:
 
     # Compute the range profile with ifft and then take the norm
     def compute_tof_ifft(self, X, Nfft=512):
-        x = np.fft.ifft(X,Nfft,2)
-        return np.linalg.norm(x,axis=1)    
+        if len(X.shape) == 3:
+            ifft_axis = 2
+            norm_axis = 1
+        elif len(X.shape) == 2:
+            ifft_axis = 1
+            norm_axis = 0
+        else:
+            return np.linalg.norm(np.fft.ifft(X,Nfft).reshape(-1,1),axis=1)
+        x = np.fft.ifft(X,Nfft,ifft_axis)
+        return np.linalg.norm(x,axis=norm_axis)    
 
     # Pipeline for copmuting the range profile with the previous functions
     def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False):
@@ -1000,10 +1008,12 @@ class isens_vtrigU:
     def plot_3D_point_cloud(self, point_cloud, meshgrids, th=0.8):
         print('plotting...')
         fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(projection='3d')
+        ax = fig.add_subplot(111,projection='3d')
         normalized_pc = self.normalization(point_cloud)
         target_idx = abs(normalized_pc)>th
         ax.scatter(meshgrids[0][target_idx], meshgrids[1][target_idx], meshgrids[2][target_idx])
+        # x,y,z = np.nonzero(normalized_pc)
+        # ax.scatter(x,y,z)
         ax.set_xlabel('x [m]')
         ax.set_ylabel('y [m]')
         ax.set_zlabel('z [m]')
@@ -1042,13 +1052,13 @@ def main():
     current_scenario = 'cf_y_angle_0'
     calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
     proArr = my_vtrig.calibration(calArr,recArr,method=0)
-    x_grid = np.arange(-2,2,0.05)
-    y_grid = np.arange(-2,2,0.05)
-    z_grid = np.arange( 0,3,0.05)
+    x_grid = np.arange(-2,2.5,0.5)
+    y_grid = np.arange(-2,2.5,0.5)
+    z_grid = np.arange( 0,3.05,0.05)
     x_grid_idx, y_grid_idx, z_grid_idx = np.meshgrid(x_grid, y_grid, z_grid)
     meshgrids = [x_grid_idx, y_grid_idx, z_grid_idx]
     point_cloud = my_vtrig.rc_3D_point_cloud(proArr[50,:,:],x_grid, y_grid, z_grid)
-    my_vtrig.plot_3D_point_cloud(point_cloud, meshgrids, th=0.5)
+    my_vtrig.plot_3D_point_cloud(point_cloud, meshgrids, th=0.8)
 
 if __name__ == '__main__':
     try:

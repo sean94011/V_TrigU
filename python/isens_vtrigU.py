@@ -146,9 +146,11 @@ class isens_vtrigU:
         plt.show(block=True)
 
     # Compute Distance Vector
-    def compute_dist_vec(self):
-        Ts = 1/self.Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
-        self.time_vec = np.linspace(0,Ts*(self.Nfft-1),num=self.Nfft)
+    def compute_dist_vec(self, Nfft=None):
+        if Nfft == None:
+            Nfft = self.Nfft
+        Ts = 1/Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
+        self.time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
         return self.time_vec*(c/2) # distance in meters
     
     # Normalize the signal to the range [0,1]
@@ -420,7 +422,9 @@ class isens_vtrigU:
         return np.linalg.norm(x,axis=norm_axis)    
 
     # Pipeline for copmuting the range profile with the previous functions
-    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False):
+    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False, Nfft=None):
+        if Nfft == None:
+            Nfft = self.Nfft
         # Load Data
         calArr, recArr = self.load_data(scenario=scenario, case=case)
         # Calibrate Data
@@ -432,7 +436,7 @@ class isens_vtrigU:
         for cal_method in cal_methods:
             proArr = self.calibration(calArr,recArr,cal_method)
             # Compute Range Profile
-            tof = self.compute_tof_ifft(proArr).T
+            tof = self.compute_tof_ifft(proArr, Nfft=Nfft).T
             tofs.append(tof.T)
             if plot:
                 # plot the range profile vs frame

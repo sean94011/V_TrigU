@@ -14,6 +14,7 @@ start = time()
 current_case = 'test04102023'
 current_scenario = 'human_2'
 my_vtrig = isens_vtrigU(case=current_case)
+my_vtrig.nframes = 500
 calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
 
 # Parameter Setup
@@ -32,7 +33,7 @@ my_vtrig.dist_vec = my_vtrig.compute_dist_vec(Nfft=Nfft)
 proArr = my_vtrig.calibration(calArr,recArr,method=0)
 
 # Compute the Range Profile and Find the Target Range Bin (For one target)
-range_profile = my_vtrig.range_pipeline(current_case,current_scenario, plot=True, Nfft=Nfft)[50,:]
+range_profile = my_vtrig.range_pipeline(current_case,current_scenario, plot=False, Nfft=Nfft)[50,:]
 range_profile[np.where(my_vtrig.dist_vec>bound)] = np.mean(range_profile)
 range_peaks, _ = find_peaks(range_profile)
 # Sort the peaks by their amplitudes in descending order and select the first 6 peaks
@@ -41,10 +42,10 @@ top_range_peaks = range_peaks[sorted_peak_indices]
 # Print the indices and angles of the top 6 peaks
 print(f"Top {ntarget} range bin indices:", top_range_peaks)
 print(f"Top {ntarget} range bins:", my_vtrig.dist_vec[top_range_peaks], '[m]')
-plt.figure(figsize=(20,10))
-plt.plot(my_vtrig.dist_vec,range_profile)
-plt.scatter(my_vtrig.dist_vec[top_range_peaks],range_profile[top_range_peaks])
-plt.show()
+# plt.figure(figsize=(20,10))
+# plt.plot(my_vtrig.dist_vec,range_profile)
+# plt.scatter(my_vtrig.dist_vec[top_range_peaks],range_profile[top_range_peaks])
+# plt.show()
 # target_range_bin = np.argmax(range_profile)
 # range_bins = [target_range_bin-1, target_range_bin, target_range_bin+1]
 # print(f'{my_vtrig.dist_vec[target_range_bin]} [m]')

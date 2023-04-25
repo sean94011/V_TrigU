@@ -11,8 +11,10 @@ from time import time
 
 start = time()
 # Load Data
-current_case = 'test01242023'
-current_scenario = 'cf_x_angle_+20'
+# current_case = 'test01242023'
+# current_scenario = 'cf_x_angle_+20'
+current_case = 'test04242023'
+current_scenario = 'human_stretch_stand'
 my_vtrig = isens_vtrigU(case=current_case)
 calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
 
@@ -26,13 +28,14 @@ y_offset_shift = 220
 x_offset_shift = -90
 x_ratio = 20/30
 y_ratio = 20/25
+threshold = 0.971
 my_vtrig.dist_vec = my_vtrig.compute_dist_vec(Nfft=Nfft)
 
 # Background Substraction
 proArr = my_vtrig.calibration(calArr,recArr,method=0)
 
 # Compute the Range Profile and Find the Target Range Bin (For one target)
-range_profile = my_vtrig.range_pipeline(current_case,current_scenario, plot=True, Nfft=Nfft)[50,:]
+range_profile = my_vtrig.range_pipeline(current_case,current_scenario, plot=True, Nfft=Nfft)[chosen_frame,:]
 range_profile[np.where(my_vtrig.dist_vec>bound)] = np.mean(range_profile)
 range_peaks, _ = find_peaks(range_profile)
 # Sort the peaks by their amplitudes in descending order and select the first 6 peaks
@@ -77,7 +80,7 @@ print(top_range_peaks)
 
 # Create a masked copy of the matrix
 masked_matrix = matrix.copy()
-masked_matrix[:, :, [ch for ch in range(matrix.shape[2]) if ch not in channels_to_search]] = -np.inf
+masked_matrix[:, :, [ch for ch in range(matrix.shape[2]) if ch not in channels_to_search]] = np.min(matrix)
 
 # Find the indices of the top 6 largest values
 flat_indices = np.argsort(masked_matrix.flatten())[::-1][:ntarget]
@@ -96,16 +99,23 @@ fig = plt.figure(figsize=(10,10))
 ax = fig.add_subplot(111, projection='3d')
 
 # Get x, y, z indices for the entire matrix
+normalized_matrix = my_vtrig.normalization(masked_matrix)
+
+# Apply a threshold
+mask = normalized_matrix > threshold
+
+# Get x, y, z indices for the entire matrix
 x, y, z = np.indices(matrix.shape)
+# x, y, z = np.indices(matrix.shape)
 
 # Create a colormap to map the normalized values to colors
 # colormap = plt.cm.viridis
 
 # Add the entire matrix as blue points with changed axis values
-# ax.scatter(x_array[x], y_array[y], z_array[z], c=colormap(matrix.flatten()), alpha=0.6, label='All points')
+ax.scatter(x_array[x[mask]], y_array[y[mask]], z_array[z[mask]], alpha=0.6, label='All points')
 
 # Add the top 6 peaks to the plot with changed axis values
-ax.scatter(x_array[x_peaks], y_array[y_peaks], z_array[z_peaks], c='r', marker='x', s=100, label=f'Top {ntarget} peaks')
+# ax.scatter(x_array[x_peaks], y_array[y_peaks], z_array[z_peaks], c='r', marker='x', s=100, label=f'Top {ntarget} peaks')
 
 # Set axis labels
 ax.set_xlabel('X (AoD [deg])')

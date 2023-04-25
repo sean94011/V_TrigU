@@ -12,7 +12,7 @@ from time import time
 start = time()
 # Load Data
 current_case = 'test04102023'
-current_scenario = 'human_longer'
+current_scenario = 'human_2'
 my_vtrig = isens_vtrigU(case=current_case)
 calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
 
@@ -60,6 +60,7 @@ tof = np.transpose(tof,axes=(1,2,3,0))
 tof = np.fft.fft(tof,n=Nfft,axis=1)
 tof = np.fft.fft(tof,n=Nfft,axis=0)
 tof = my_vtrig.normalization(tof)
+doppler = tof.copy()
 # tof[:,:,top_range_peaks] *= 10
 tof = np.roll(tof,shift=y_offset_shift,axis=1)
 tof = np.roll(tof,shift=x_offset_shift,axis=0)
@@ -87,7 +88,6 @@ indices_3d = np.unravel_index(flat_indices, matrix.shape)
 
 # Extract x, y, and z coordinates of the top 6 peaks
 x_peaks, y_peaks, z_peaks = indices_3d
-doppler = tof.copy()
 doppler[x_peaks, y_peaks, z_peaks, :] *= 100
 doppler = my_vtrig.normalization(doppler)
 doppler = np.fft.fft(np.real(doppler), axis=3)

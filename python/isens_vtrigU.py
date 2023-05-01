@@ -35,7 +35,8 @@ class isens_vtrigU:
             peak_height = 0.3, 
             enhance = True, 
             enhance_rate = 100, 
-            interpolate = True
+            interpolate = True,
+            info = False
         ) -> None:
         """ Load Parameters """
         # load setup parameters
@@ -72,12 +73,13 @@ class isens_vtrigU:
 
         self.angle_vec = np.linspace(0,180,self.Nfft)
         self.N_freq = self.freq.shape[0]
-
-        print(f'Freq Points: {self.freq.shape[0]} ')
-        print(f'TxRxPairs Shape: {self.TxRxPairs.shape}')
-        print(f'Nfft = {self.Nfft}')
-        print(f'Number of Recorded Frames: {self.nframes}')
-        print('')
+        
+        if info:
+            print(f'Freq Points: {self.freq.shape[0]} ')
+            print(f'TxRxPairs Shape: {self.TxRxPairs.shape}')
+            print(f'Nfft = {self.Nfft}')
+            print(f'Number of Recorded Frames: {self.nframes}')
+            print('')
 
 
     """**********************************************************************"""
@@ -158,7 +160,7 @@ class isens_vtrigU:
         return (x - np.min(x))/(np.max(x)-np.min(x))
 
     # Load collected Data
-    def load_data(self, case = 'test/', scenario='move_z', return_path=False):
+    def load_data(self, case = 'test/', scenario='move_z', return_path=False, info=False):
         # specify data path components
 
         data_path = os.path.join('./data/', case, "")
@@ -174,15 +176,16 @@ class isens_vtrigU:
             # processed_path = data_path + processed_data
 
             # load data
-            print('Current scenario: ' + scenario)
-            print('')
             recArr = np.load(raw_path)
             calArr = np.load(cal_path)
-            print(f'calArr Shape: {calArr.shape}')
-            print(f'recArr Shape: {recArr.shape}')
-            print('')
-            print('recArr Channels: (frame, Tx*Rx, freqs)')
-            print('')
+            if info:
+                print('Current scenario: ' + scenario)
+                print('')
+                print(f'calArr Shape: {calArr.shape}')
+                print(f'recArr Shape: {recArr.shape}')
+                print('')
+                print('recArr Channels: (frame, Tx*Rx, freqs)')
+                print('')
 
         else:
             print(f'Scenario: {scenario} does not exist!')

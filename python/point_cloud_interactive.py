@@ -14,8 +14,8 @@ import pickle
 def main(interactive_point_cloud=True):
     # Load Data
     start = time()
-    current_case = 'test04102023'
-    current_scenario = 'human_longer'
+    current_case = 'test04242023'
+    current_scenario = 'human_stretch_stand'
     all_point_cloud, all_axis_value, all_target_idx, dataPath = point_cloud_process(
                                                                     current_case, 
                                                                     current_scenario, 
@@ -71,7 +71,7 @@ def point_cloud_process(current_case, current_scenario, save_3d_data=True, force
         save_list_pickle(f'{tmp_data_path}/all_target_idx.pkl',all_target_idx)
     else:
         print('All Files Exist, Loading...')
-        all_point_cloud = np.load(f'{tmp_data_path}/all_point_cloud.npy')
+        all_point_cloud = None#np.load(f'{tmp_data_path}/all_point_cloud.npy')
         axis_value = np.load(f'{tmp_data_path}/axis_value.npy')
         all_target_idx = load_list_pickle(f'{tmp_data_path}/all_target_idx.pkl')
 

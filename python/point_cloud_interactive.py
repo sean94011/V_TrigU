@@ -20,7 +20,7 @@ def main(interactive_point_cloud=True):
                                                                     current_case, 
                                                                     current_scenario, 
                                                                     save_3d_data=True, 
-                                                                    force_process=False
+                                                                    force_process=True
                                                                 )
     if interactive_point_cloud:
         gen_interactive_point_cloud(current_scenario, all_axis_value, all_target_idx, dataPath, save_plot=True)
@@ -56,6 +56,7 @@ def point_cloud_process(current_case, current_scenario, save_3d_data=True, force
                                                     chosen_frame,
                                                     current_case,
                                                     current_scenario,
+                                                    threshold=0.99
                                                 )
             all_point_cloud.append(point_cloud)
             all_target_idx.append(target_idx)

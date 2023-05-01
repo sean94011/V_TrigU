@@ -23,6 +23,7 @@ def main(plot=True):
                                                 chosen_frame,
                                                 current_case,
                                                 current_scenario,
+                                                threshold=0.99
                                             )
     if plot:
          point_cloud_plot(axis_value, target_idx, current_scenario)
@@ -53,7 +54,7 @@ def gen_3D_data(
  
     my_vtrig.dist_vec = my_vtrig.compute_dist_vec(Nfft=Nfft)
     # Compute the Range Profile and Find the Target Range Bin (For one target)
-    range_profile = my_vtrig.range_pipeline(current_case,current_scenario, plot=True, Nfft=Nfft)[chosen_frame,:]
+    range_profile = my_vtrig.range_pipeline(current_case,current_scenario, plot=False, Nfft=Nfft)[chosen_frame,:]
     range_profile[np.where(my_vtrig.dist_vec>bound)] = np.mean(range_profile)
     range_peaks, _ = find_peaks(range_profile)
     # Sort the peaks by their amplitudes in descending order and select the first 6 peaks

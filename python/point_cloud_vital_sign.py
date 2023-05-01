@@ -8,16 +8,32 @@ from scipy.signal import find_peaks
 from scipy.io import savemat
 from mpl_toolkits.mplot3d import Axes3D
 from time import time
+import threading
+from queue import Queue
+import json
+import os
+
+# Helper Functions
+def save_dict_json(data, file_path):
+    with open(file_path, 'w') as file:
+        json.dump(data, file)
+
+# Load dictionary from a JSON file
+def load_dict_json(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
 
 start = time()
 # Load Data
 current_case = 'test04102023'
-current_scenario = 'human_2'
+current_scenario = 'human_longer'
 my_vtrig = isens_vtrigU(case=current_case)
 my_vtrig.nframes = 500
-calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
+calArr, recArr, dataPath = my_vtrig.load_data(case=current_case, scenario=current_scenario, return_path=True)
 
 # Parameter Setup
+recArr = recArr[100:200,:,:]
 nframe = recArr.shape[0]
 chosen_frame = 50
 ntarget = 6             # number of 
@@ -27,6 +43,8 @@ y_offset_shift = 220
 x_offset_shift = -90
 x_ratio = 20/30
 y_ratio = 20/25
+threshold=0.98
+num_threads = 32
 my_vtrig.dist_vec = my_vtrig.compute_dist_vec(Nfft=Nfft)
 
 # Background Substraction
@@ -51,16 +69,23 @@ print(f"Top {ntarget} range bins:", my_vtrig.dist_vec[top_range_peaks], '[m]')
 # print(f'{my_vtrig.dist_vec[target_range_bin]} [m]')
 
 # Generate the 3D map
-tof = np.fft.ifft(proArr,n=Nfft,axis=2)                      # Do IFFT across frequency steps to get the range bins
-tof[:,:,np.where(my_vtrig.dist_vec>bound)] = np.min(tof)       # Eliminate noise that is beyond the range
+map_3d = []
+for frame in range(nframe):
+    tof = proArr[frame,:,:]
+    tof = np.fft.ifft(tof,n=Nfft,axis=1)                      # Do IFFT across frequency steps to get the range bins
+    tof[:,np.where(my_vtrig.dist_vec>bound)] = np.min(tof)       # Eliminate noise that is beyond the range
 
-# tof = tof.reshape(nframe,20,20,-1)[chosen_frame,:,:,:]      # Reshape the range profile to Tx x Rx and extract a frame
-tof = tof.reshape(nframe,20,20,-1)
-tof = np.transpose(tof,axes=(1,2,3,0))
-# tof = np.linalg.norm(tof,axis=0)
-tof = np.fft.fft(tof,n=Nfft,axis=1)
-tof = np.fft.fft(tof,n=Nfft,axis=0)
-tof = my_vtrig.normalization(tof)
+    # tof = tof.reshape(nframe,20,20,-1)[chosen_frame,:,:,:]      # Reshape the range profile to Tx x Rx and extract a frame
+    tof = tof.reshape(20,20,-1)
+    # tof = np.transpose(tof,axes=(1,2,3,0))
+    # tof = np.linalg.norm(tof,axis=0)
+    tof = np.fft.fft(tof,n=Nfft,axis=1)
+    tof = np.fft.fft(tof,n=Nfft,axis=0)
+    map_3d.append(tof)
+tof = np.stack(map_3d,axis=-1)
+print(tof.shape)
+print('test')
+# tof = my_vtrig.normalization(tof)
 doppler = tof.copy()
 # tof[:,:,top_range_peaks] *= 10
 tof = np.roll(tof,shift=y_offset_shift,axis=1)
@@ -83,23 +108,75 @@ print(top_range_peaks)
 masked_matrix = matrix.copy()
 masked_matrix[:, :, [ch for ch in range(matrix.shape[2]) if ch not in channels_to_search]] = -np.inf
 
-# Find the indices of the top 6 largest values
-flat_indices = np.argsort(masked_matrix.flatten())[::-1][:ntarget]
-indices_3d = np.unravel_index(flat_indices, matrix.shape)
+# Get x, y, z indices for the entire matrix
+normalized_matrix = my_vtrig.normalization(masked_matrix)
 
-# Extract x, y, and z coordinates of the top 6 peaks
-x_peaks, y_peaks, z_peaks = indices_3d
-doppler[x_peaks, y_peaks, z_peaks, :] *= 100
-doppler = my_vtrig.normalization(doppler)
-doppler = np.fft.fft(np.real(doppler), axis=3)
+# Apply a threshold
+mask = normalized_matrix > threshold
+
+# Get x, y, z indices for the entire matrix
+x, y, z = np.indices(matrix.shape)
+# x, y, z = np.indices(matrix.shape)
+
+# Create a colormap to map the normalized values to colors
+# colormap = plt.cm.viridis
+
+# Add the entire matrix as blue points with changed axis values
+# ax.scatter(x_array[x[mask]], y_array[y[mask]], z_array[z[mask]], alpha=0.6, label='All points')
+# x_peaks, y_peaks, z_peaks = x[mask], y[mask], z[mask] 
+# Doppler Helper Functions
+def doppler_fft(key, array, output):
+    result = np.fft.fft(array)
+    output[key] = result
+
+def doppler_worker(queue, output):
+    while not queue.empty():
+        item = queue.get()
+        doppler_fft(*item, output)
+        queue.task_done()
+
+possible_doppler = {}
+work_queue = Queue()
+for x_peak_idx in x[mask]:
+    for y_peak_idx in y[mask]:
+        for z_peak_idx in z[mask]:
+            possible_doppler[(x_peak_idx, y_peak_idx, z_peak_idx)] = doppler[x_peak_idx, y_peak_idx, z_peak_idx, :]
+# doppler = my_vtrig.normalization(doppler)
+for key, value in possible_doppler.items():
+    work_queue.put((key,value))
+threads = []
+possible_doppler_output={}
+for _ in range(num_threads):
+    t = threading.Thread(target=doppler_worker, args=(work_queue, possible_doppler_output))
+    t.start()
+    threads.append(t)
+
+work_queue.join()
+for t in threads:
+    t.join()
+save_dict_json(possible_doppler_output, os.path.join(dataPath,'doppler_dict.json'))
 d=(2*60+2.8)/500
 doppler_freq = np.fft.fftfreq(500,d)
 freq_low = 10
 freq_high = 230
-range_low = 100
-range_high = 350
-doppler = doppler[freq_low:freq_high,range_low:range_high]
-print(doppler.shape)
+# range_low = 100
+# range_high = 350
+for x_peak_idx in x[mask]:
+    for y_peak_idx in y[mask]:
+        for z_peak_idx in z[mask]:
+            plt.figure(figsize=(20,10))
+            cropped_doppler = possible_doppler_output[(x_peak_idx, y_peak_idx, z_peak_idx)]
+            cropped_doppler = cropped_doppler[freq_low:freq_high]
+            cropped_doppler = my_vtrig.normalization(np.abs(cropped_doppler))
+            plt.plot(doppler_freq[freq_low:freq_high],cropped_doppler)
+            plt.title(f'(AoD, AoA, Range) = ({(x_array[x_peak_idx])} [deg], {(y_array[y_peak_idx])} [deg], {(z_array[z_peak_idx])} [m])')
+            plt.xlabel('doppler frequency [Hz]')
+            plt.ylabel('magnitude')
+            plt.savefig(os.path.join(dataPath,'tmp_plots',f'({(x_array[x_peak_idx])}, {(y_array[y_peak_idx])}, {(z_array[z_peak_idx])}).png'))
+# print(doppler.shape)
+# np.save(dataPath, doppler.npy)
+end = time()
+print(end-start, '[s]')
 """
 plt.figure(figsize=(8,6))
 plt.xlabel('Frequency [Hz]')

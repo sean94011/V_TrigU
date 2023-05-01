@@ -20,7 +20,7 @@ def main(interactive_point_cloud=True):
                                                                     current_case, 
                                                                     current_scenario, 
                                                                     save_3d_data=True, 
-                                                                    force_process=True
+                                                                    force_process=False
                                                                 )
     if interactive_point_cloud:
         gen_interactive_point_cloud(current_scenario, all_axis_value, all_target_idx, dataPath, save_plot=True)

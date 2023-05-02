@@ -41,8 +41,9 @@ def load_list_pickle(file_path):
 
 def point_cloud_process(current_case, current_scenario, save_3d_data=True, force_process=False):
     my_vtrig = isens_vtrigU(case=current_case)
-    recArr, _, dataPath = my_vtrig.load_data(case=current_case, scenario=current_scenario, return_path=True)
+    _, recArr, dataPath = my_vtrig.load_data(case=current_case, scenario=current_scenario, return_path=True)
     nframe = recArr.shape[0]
+    print(nframe)
     tmp_data_path = os.path.join(dataPath,'tmp_data')
     if 'tmp_data' not in os.listdir(dataPath):
         os.mkdir(tmp_data_path)
@@ -71,10 +72,10 @@ def point_cloud_process(current_case, current_scenario, save_3d_data=True, force
         save_list_pickle(f'{tmp_data_path}/all_target_idx.pkl',all_target_idx)
     else:
         print('All Files Exist, Loading...')
-        all_point_cloud = None#np.load(f'{tmp_data_path}/all_point_cloud.npy')
+        all_point_cloud = np.load(f'{tmp_data_path}/all_point_cloud.npy')
         axis_value = np.load(f'{tmp_data_path}/axis_value.npy')
         all_target_idx = load_list_pickle(f'{tmp_data_path}/all_target_idx.pkl')
-
+    print(np.array(all_point_cloud).shape)
     return all_point_cloud, axis_value, all_target_idx, dataPath
 
 
@@ -90,24 +91,49 @@ def gen_interactive_point_cloud(scenario, axis_value, all_target_idx, dataPath=N
     # colormap = plt.cm.viridis
 
     # Add the entire matrix as blue points with changed axis values
-    img = ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='All points')
+    def plot_points(target_idx):
+        # Clear all points
+        ax.clear()
 
-    # Set axis labels
-    ax.set_xlabel('X (AoD [deg])')
-    ax.set_ylabel('Y (AoA [deg])')
-    ax.set_zlabel('Z (Range [m])')
+        # Add new points with changed axis values
+        ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='All points')
+
+        # Set axis labels and limits
+        ax.set_xlabel('X (AoD [deg])')
+        ax.set_ylabel('Y (AoA [deg])')
+        ax.set_zlabel('Z (Range [m])')
+        ax.set_xlim(x_array.min(), x_array.max())
+        ax.set_ylim(y_array.min(), y_array.max())
+        ax.set_zlim(z_array.min(), z_array.max())
+
+        # Add legend and grid
+        ax.legend()
+        ax.grid()
+    # # Add the entire matrix as blue points with changed axis values
+    # img = ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='All points')
+
+    # # Set axis labels
+    # ax.set_xlabel('X (AoD [deg])')
+    # ax.set_ylabel('Y (AoA [deg])')
+    # ax.set_zlabel('Z (Range [m])')
 
     # Set plot title
     plt.title(f"Interactive 3D Point Cloud: {scenario}")
 
-    # Set the axis limits to match the ranges of x_array, y_array, and z_array
-    ax.set_xlim(x_array.min(), x_array.max())
-    ax.set_ylim(y_array.min(), y_array.max())
-    ax.set_zlim(z_array.min(), z_array.max())
+    # # Set the axis limits to match the ranges of x_array, y_array, and z_array
+    # ax.set_xlim(x_array.min(), x_array.max())
+    # ax.set_ylim(y_array.min(), y_array.max())
+    # ax.set_zlim(z_array.min(), z_array.max())
 
-    # Add legend
-    ax.legend()
-    ax.grid()
+    # # Add legend
+    # ax.legend()
+    # ax.grid()
+
+    # Plot initial points
+    plot_points(target_idx)
+
+
+
     tmp_plot_path = os.path.join(dataPath,'tmp_plot')
     if 'tmp_plot' not in os.listdir(dataPath):
         os.mkdir(tmp_plot_path)
@@ -119,14 +145,15 @@ def gen_interactive_point_cloud(scenario, axis_value, all_target_idx, dataPath=N
         ax=axframe,
         label='frame',
         valmin=0,
-        valmax=len(target_idx[0])-1,
+        valmax=200-1,
         valinit=init_frame,
         valstep=1,
     )
     def update(val):
-        target_idx = all_target_idx[val]
-        img.set_data((x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]]))
+        target_idx = all_target_idx[int(val)]
+        plot_points(target_idx)
         fig.canvas.draw_idle()
+        
     frame_slider.on_changed(update)
     resetax = fig.add_axes([0.8, 0.025, 0.1, 0.04])
     button = Button(resetax, 'Reset', hovercolor='0.975')

@@ -8,14 +8,15 @@ from scipy.signal import find_peaks
 from scipy.io import savemat
 from mpl_toolkits.mplot3d import Axes3D
 from time import time
+import os
 
 def main(plot=True):
     start = time()
     # Load Data
-    current_case = 'test01242023'
-    current_scenario = 'cf_x_angle_+20'
-    # current_case = 'test04242023'
-    # current_scenario = 'human_stretch_stand'
+    # current_case = 'test01242023'
+    # current_scenario = 'cf_x_angle_+20'
+    current_case = 'test04102023'
+    current_scenario = 'human_longer'
     chosen_frame = 50
 
     # Background Substraction
@@ -27,8 +28,9 @@ def main(plot=True):
                                             )
     if plot:
         ground_truth = np.array([[20,0,1]])
+        plot_data_path = os.path.join('./data/', current_case, current_scenario,"")
         # point_cloud_plot(axis_value, target_idx, current_scenario, ground_truth) # Threshold Points
-        point_cloud_plot(axis_value, target_idx, current_scenario, point_cloud, all_points=True, ground_truth=ground_truth) # All Points
+        point_cloud_plot(axis_value, target_idx, current_scenario, point_cloud, all_points=True, ground_truth=ground_truth, plot_data_path=plot_data_path) # All Points
 
     end = time()
     print(end-start, '[s]')
@@ -117,7 +119,7 @@ def gen_3D_data(
     # print(y_array[y_peaks])
     # print(z_array[z_peaks])
     # Get x, y, z indices for the entire matrix
-    normalized_matrix = my_vtrig.normalization(masked_matrix)
+    normalized_matrix = my_vtrig.normalization(tof)
 
     # Apply a threshold
     mask = normalized_matrix > threshold
@@ -128,53 +130,64 @@ def gen_3D_data(
 
     return normalized_matrix, [x_array, y_array, z_array], [x[mask].tolist(),y[mask].tolist(),z[mask].tolist()] 
 
-def point_cloud_plot(axis_value, target_idx, scenario, point_cloud=None, all_points=False, ground_truth=None):
-        print('Plotting')
-        fig = plt.figure(figsize=(10,10))
-        ax = fig.add_subplot(111, projection='3d')
+def point_cloud_plot(axis_value, target_idx, scenario, point_cloud=None, all_points=False, ground_truth=None, plot_data_path=None):
+    print('Plotting')
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111, projection='3d')
 
-        x_array, y_array, z_array = axis_value
+    x_array, y_array, z_array = axis_value
+    # Create a colormap to map the normalized values to colors
+    # colormap = plt.cm.viridis
+
+    # Add the entire matrix as blue points with changed axis values
+    if all_points and point_cloud is not None:
         # Create a colormap to map the normalized values to colors
-        # colormap = plt.cm.viridis
+        colormap = plt.cm.viridis
+        x, y, z = np.indices(point_cloud.shape)
+        ax.scatter(x_array[x], y_array[y], z_array[z], c=colormap(point_cloud.flatten()), alpha=0.01, label='All points')
+    else:
+        ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='Measured Points')
 
-        # Add the entire matrix as blue points with changed axis values
-        if all_points and point_cloud is not None:
-            # Create a colormap to map the normalized values to colors
-            colormap = plt.cm.viridis
-            x, y, z = np.indices(point_cloud.shape)
-            ax.scatter(x_array[x], y_array[y], z_array[z], c=colormap(point_cloud.flatten()), alpha=0.01, label='All points')
-        else:
-            ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='Measured Points')
+    # Add Ground Truth
+    if ground_truth is not None:
+            ax.scatter(x_array[x_array==find_nearest(x_array,ground_truth[:,0])], y_array[target_idx[1][0]], z_array[target_idx[2][0]], c='r', marker='x', label='Ground Truth')
 
-        # Add Ground Truth
-        if ground_truth is not None:
-             ax.scatter(x_array[x_array==find_nearest(x_array,ground_truth[:,0])], y_array[target_idx[1][0]], z_array[target_idx[2][0]], c='r', marker='x', label='Ground Truth')
+        # n_points = len(ground_truth)
+        # for point in range(n_points):
+        #     ax.scatter(x_array[x_array==find_nearest(x_array,ground_truth[point,0])], y_array[y_array==find_nearest(y_array,ground_truth[point,0])], z_array[z_array==find_nearest(z_array,ground_truth[point,0])], c='r')
 
-            # n_points = len(ground_truth)
-            # for point in range(n_points):
-            #     ax.scatter(x_array[x_array==find_nearest(x_array,ground_truth[point,0])], y_array[y_array==find_nearest(y_array,ground_truth[point,0])], z_array[z_array==find_nearest(z_array,ground_truth[point,0])], c='r')
+    # Add the top 6 peaks to the plot with changed axis values
+    # ax.scatter(x_array[x_peaks], y_array[y_peaks], z_array[z_peaks], c='r', marker='x', s=100, label=f'Top {ntarget} peaks')
 
-        # Add the top 6 peaks to the plot with changed axis values
-        # ax.scatter(x_array[x_peaks], y_array[y_peaks], z_array[z_peaks], c='r', marker='x', s=100, label=f'Top {ntarget} peaks')
+    # Set axis labels
+    ax.set_xlabel('X (AoD [deg])')
+    ax.set_ylabel('Y (AoA [deg])')
+    ax.set_zlabel('Z (Range [m])')
 
-        # Set axis labels
-        ax.set_xlabel('X (AoD [deg])')
-        ax.set_ylabel('Y (AoA [deg])')
-        ax.set_zlabel('Z (Range [m])')
+    # Set plot title
+    if all_points:
+        point_display = 'All Points'
+    else:
+        point_display = 'Threshold Points'
+    plt.title(f"3D Point Cloud ({point_display}): {scenario}")
 
-        # Set plot title
-        plt.title(f"3D Point Cloud: {scenario}")
+    # Set the axis limits to match the ranges of x_array, y_array, and z_array
+    ax.set_xlim(x_array.min(), x_array.max())
+    ax.set_ylim(y_array.min(), y_array.max())
+    ax.set_zlim(z_array.min(), z_array.max())
 
-        # Set the axis limits to match the ranges of x_array, y_array, and z_array
-        ax.set_xlim(x_array.min(), x_array.max())
-        ax.set_ylim(y_array.min(), y_array.max())
-        ax.set_zlim(z_array.min(), z_array.max())
+    # Add legend
+    ax.legend()
 
-        # Add legend
-        ax.legend()
+    # Show the plot
+    plt.show()
 
-        # Show the plot
-        plt.show()
+    if plot_data_path is not None:
+        print(os.listdir(plot_data_path))
+        if 'tmp_plot' not in os.listdir(plot_data_path):
+            os.mkdir(os.path.join(plot_data_path,'tmp_plot'))
+        plot_data_path = os.path.join(plot_data_path,'tmp_plot',f'Point_Cloud_{scenario}_{point_display}_{time()}.png')
+        plt.savefig(plot_data_path)
 
 def find_nearest(array, value):
     array = np.asarray(array)

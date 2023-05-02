@@ -12,10 +12,10 @@ from time import time
 def main(plot=True):
     start = time()
     # Load Data
-    # current_case = 'test01242023'
-    # current_scenario = 'cf_x_angle_+20'
-    current_case = 'test04242023'
-    current_scenario = 'human_stretch_stand'
+    current_case = 'test01242023'
+    current_scenario = 'cf_x_angle_+20'
+    # current_case = 'test04242023'
+    # current_scenario = 'human_stretch_stand'
     chosen_frame = 50
 
     # Background Substraction
@@ -26,7 +26,9 @@ def main(plot=True):
                                                 threshold=0.99
                                             )
     if plot:
-         point_cloud_plot(axis_value, target_idx, current_scenario)
+        ground_truth = np.array([[20,0,1]])
+        # point_cloud_plot(axis_value, target_idx, current_scenario, ground_truth) # Threshold Points
+        point_cloud_plot(axis_value, target_idx, current_scenario, point_cloud, all_points=True, ground_truth=ground_truth) # All Points
 
     end = time()
     print(end-start, '[s]')
@@ -44,6 +46,7 @@ def gen_3D_data(
         y_ratio = 20/25,
         threshold = 0.971,
     ):
+    print('Processing...')
     my_vtrig = isens_vtrigU(case=current_case)
     calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
     proArr = my_vtrig.calibration(calArr,recArr,method=0)
@@ -125,7 +128,8 @@ def gen_3D_data(
 
     return normalized_matrix, [x_array, y_array, z_array], [x[mask].tolist(),y[mask].tolist(),z[mask].tolist()] 
 
-def point_cloud_plot(axis_value, target_idx, scenario, ground_truth=None):
+def point_cloud_plot(axis_value, target_idx, scenario, point_cloud=None, all_points=False, ground_truth=None):
+        print('Plotting')
         fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111, projection='3d')
 
@@ -134,7 +138,21 @@ def point_cloud_plot(axis_value, target_idx, scenario, ground_truth=None):
         # colormap = plt.cm.viridis
 
         # Add the entire matrix as blue points with changed axis values
-        ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='All points')
+        if all_points and point_cloud is not None:
+            # Create a colormap to map the normalized values to colors
+            colormap = plt.cm.viridis
+            x, y, z = np.indices(point_cloud.shape)
+            ax.scatter(x_array[x], y_array[y], z_array[z], c=colormap(point_cloud.flatten()), alpha=0.01, label='All points')
+        else:
+            ax.scatter(x_array[target_idx[0]], y_array[target_idx[1]], z_array[target_idx[2]], alpha=0.6, label='Measured Points')
+
+        # Add Ground Truth
+        if ground_truth is not None:
+             ax.scatter(x_array[x_array==find_nearest(x_array,ground_truth[:,0])], y_array[target_idx[1][0]], z_array[target_idx[2][0]], c='r', marker='x', label='Ground Truth')
+
+            # n_points = len(ground_truth)
+            # for point in range(n_points):
+            #     ax.scatter(x_array[x_array==find_nearest(x_array,ground_truth[point,0])], y_array[y_array==find_nearest(y_array,ground_truth[point,0])], z_array[z_array==find_nearest(z_array,ground_truth[point,0])], c='r')
 
         # Add the top 6 peaks to the plot with changed axis values
         # ax.scatter(x_array[x_peaks], y_array[y_peaks], z_array[z_peaks], c='r', marker='x', s=100, label=f'Top {ntarget} peaks')
@@ -157,6 +175,11 @@ def point_cloud_plot(axis_value, target_idx, scenario, ground_truth=None):
 
         # Show the plot
         plt.show()
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
 
 if __name__ == '__main__':
      main()

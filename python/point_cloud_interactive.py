@@ -10,8 +10,9 @@ from mpl_toolkits.mplot3d import Axes3D, proj3d
 from scipy.constants import c
 from point_cloud import gen_3D_data
 import pickle
+import multiprocessing as mp
 
-def main(interactive_point_cloud=True):
+def main(interactive_point_cloud=False):
     # Load Data
     start = time()
     current_case = 'test04242023'
@@ -20,7 +21,7 @@ def main(interactive_point_cloud=True):
                                                                     current_case, 
                                                                     current_scenario, 
                                                                     save_3d_data=True, 
-                                                                    force_process=False
+                                                                    force_process=True
                                                                 )
     if interactive_point_cloud:
         gen_interactive_point_cloud(current_scenario, all_axis_value, all_target_idx, dataPath, save_plot=True)
@@ -53,16 +54,14 @@ def point_cloud_process(current_case, current_scenario, save_3d_data=True, force
         print('Processing...')
         all_point_cloud = []
         all_target_idx = []
-        for chosen_frame in range(nframe):
-            point_cloud, axis_value, target_idx = gen_3D_data(
-                                                    chosen_frame,
-                                                    current_case,
-                                                    current_scenario,
-                                                    threshold=0.99
-                                                )
+        pool = mp.Pool()
+        for chosen_frame in range(10):
+            print(f'Frame: {chosen_frame}')
+            output = pool.apply_async(gen_3D_data,(chosen_frame, current_case, current_scenario, 0.98))
+            point_cloud, axis_value, target_idx = output.get()
             all_point_cloud.append(point_cloud)
             all_target_idx.append(target_idx)
-
+        pool.close()
         if save_3d_data:
             all_point_cloud = np.stack(all_point_cloud, axis=0)
             np.save(f'{tmp_data_path}/all_point_cloud.npy',all_point_cloud)

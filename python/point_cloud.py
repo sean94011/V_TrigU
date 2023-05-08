@@ -9,31 +9,65 @@ from scipy.io import savemat
 from mpl_toolkits.mplot3d import Axes3D
 from time import time
 import os
+import argparse
 
-def main(plot=True):
+parser = argparse.ArgumentParser()
+parser.add_argument("case", help="enter the case you want to process", type=str)
+parser.add_argument("scenario", help="enter the scenario you want to process", type=str)
+parser.add_argument("-f", "--frame", help="enter the frame you want to process", type=int, default=50)
+parser.add_argument("-t", "--threshold", help="enter the threshold you want to apply", type=int, default=0.98)
+parser.add_argument("-p", "--plot", help="enter True if you want to plot, False if you don't want", type=bool, default=False)
+args = parser.parse_args()
+
+def main(plot=args.plot):
     start = time()
     # Load Data
     # current_case = 'test01242023'
     # current_scenario = 'cf_x_angle_+20'
-    current_case = 'test04102023'
-    current_scenario = 'human_longer'
-    chosen_frame = 50
+    # current_case = 'test04102023'
+    # current_scenario = 'human_longer'
+    # chosen_frame = 50
+    current_case = args.case
+    current_scenario = args.scenario
+    chosen_frame = args.frame
+    current_threshold = args.threshold
+    
+    fpath = os.path.join("./data",current_case,current_scenario)
+    fdir = "frames_point_cloud"
+    fname = f"Point_Cloud:frame={chosen_frame}.npy"
 
-    # Background Substraction
-    point_cloud, axis_value, target_idx = gen_3D_data(
-                                                chosen_frame,
-                                                current_case,
-                                                current_scenario,
-                                                threshold=0.99
-                                            )
+    if fdir in os.listdir(fpath):
+        print(f"frames_point_cloud exists in {current_scenario}!")
+    else:
+        print(f"frames_point_cloud doesn't exist in {current_scenario}, creating the folder...")
+        os.mkdir(os.path.join(fpath,fdir))
+        print(f"frames_point_cloud folder created in {current_scenario}!")
+
+    if fname in os.listdir(os.path.join(fpath,fdir)):
+        print(f"Frame {chosen_frame} has been processed, proceed to next frame...")
+    else:
+        fname = os.path.join(fpath,fdir,fname)
+
+        # Background Substraction
+        point_cloud, axis_value, target_idx = gen_3D_data(
+                                                    chosen_frame,
+                                                    current_case,
+                                                    current_scenario,
+                                                    threshold=current_threshold
+                                                )
+        
+
+        np.save(fname, point_cloud)
+        end = time()
+        print(end-start, '[s]')
+
     if plot:
         ground_truth = np.array([[20,0,1]])
         plot_data_path = os.path.join('./data/', current_case, current_scenario,"")
         # point_cloud_plot(axis_value, target_idx, current_scenario, ground_truth) # Threshold Points
         point_cloud_plot(axis_value, target_idx, current_scenario, point_cloud, all_points=True, ground_truth=ground_truth, plot_data_path=plot_data_path) # All Points
 
-    end = time()
-    print(end-start, '[s]')
+    
 
 def gen_3D_data(
         chosen_frame,
@@ -41,14 +75,14 @@ def gen_3D_data(
         current_scenario,
         ntarget = 6, 
         bound = 2.5, 
-        Nfft = 512,
+        Nfft = 64,
         y_offset_shift = 220 ,
         x_offset_shift = -90,
         x_ratio = 20/30,
         y_ratio = 20/25,
         threshold = 0.971,
     ):
-    print('Processing...')
+    print(f'Processing Frame {chosen_frame}...')
     my_vtrig = isens_vtrigU(case=current_case)
     calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
     proArr = my_vtrig.calibration(calArr,recArr,method=0)

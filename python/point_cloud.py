@@ -21,6 +21,7 @@ args = parser.parse_args()
 
 def main(plot=args.plot):
     start = time()
+    current_Nfft=512
     # Load Data
     # current_case = 'test01242023'
     # current_scenario = 'cf_x_angle_+20'
@@ -31,17 +32,18 @@ def main(plot=args.plot):
     current_scenario = args.scenario
     chosen_frame = args.frame
     current_threshold = args.threshold
-    
+    if current_case != 'test04102023' and current_case != 'test04242023':
+        return
     fpath = os.path.join("./data",current_case,current_scenario)
-    fdir = "frames_point_cloud"
+    fdir = f"frames_point_cloud_NFFT={current_Nfft}"
     fname = f"Point_Cloud:frame={chosen_frame}.npy"
 
     if fdir in os.listdir(fpath):
-        print(f"frames_point_cloud exists in {current_scenario}!")
+        print(f"{fdir} exists in {current_scenario}!")
     else:
-        print(f"frames_point_cloud doesn't exist in {current_scenario}, creating the folder...")
+        print(f"{fdir} doesn't exist in {current_scenario}, creating the folder...")
         os.mkdir(os.path.join(fpath,fdir))
-        print(f"frames_point_cloud folder created in {current_scenario}!")
+        print(f"{fdir} folder created in {current_scenario}!")
 
     if fname in os.listdir(os.path.join(fpath,fdir)):
         print(f"Frame {chosen_frame} has been processed, proceed to next frame...")
@@ -53,7 +55,8 @@ def main(plot=args.plot):
                                                     chosen_frame,
                                                     current_case,
                                                     current_scenario,
-                                                    threshold=current_threshold
+                                                    threshold=current_threshold,
+                                                    Nfft=current_Nfft
                                                 )
         
 
@@ -75,7 +78,7 @@ def gen_3D_data(
         current_scenario,
         ntarget = 6, 
         bound = 2.5, 
-        Nfft = 64,
+        Nfft = 512,
         y_offset_shift = 220 ,
         x_offset_shift = -90,
         x_ratio = 20/30,

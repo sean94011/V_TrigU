@@ -8,23 +8,35 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import Button, Slider
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 from scipy.constants import c
-from point_cloud import gen_3D_data
+# from point_cloud import gen_3D_data
 import pickle
 import multiprocessing as mp
 
-def main(interactive_point_cloud=False):
+global x_ratio, y_ratio, Nfft
+x_ratio = 20/30
+y_ratio = 20/25
+Nfft = 512
+current_case = 'test04102023'
+current_scenario = 'cf_y_angle_0'
+my_vtrig = isens_vtrigU(case=current_case)
+
+def main(interactive_point_cloud=True):
     # Load Data
     start = time()
-    current_case = 'test04242023'
-    current_scenario = 'human_stretch_stand'
-    all_point_cloud, all_axis_value, all_target_idx, dataPath = point_cloud_process(
-                                                                    current_case, 
-                                                                    current_scenario, 
-                                                                    save_3d_data=True, 
-                                                                    force_process=True
-                                                                )
+    
+    # all_point_cloud, all_axis_value, all_target_idx, dataPath = point_cloud_process(
+    #                                                                 current_case, 
+    #                                                                 current_scenario, 
+    #                                                                 save_3d_data=True, 
+    #                                                                 force_process=True
+    #                                                             )
+    all_point_cloud = []
+    fpath = os.path.join('./data',current_case,current_scenario,'frames_point_cloud')
+    for frame in os.listdir(fpath):
+        all_point_cloud.append(np.load(os.path.join(fpath,frame)))
     if interactive_point_cloud:
-        gen_interactive_point_cloud(current_scenario, all_axis_value, all_target_idx, dataPath, save_plot=True)
+        # gen_interactive_point_cloud(current_scenario, all_axis_value, all_target_idx, dataPath, save_plot=True)
+        gen_interactive_point_cloud(current_scenario, all_point_cloud=all_point_cloud, dataPath=os.path.join('./data',current_case,current_scenario), save_plot=True)
 
     end = time()
     print(end-start, '[s]')
@@ -78,14 +90,33 @@ def point_cloud_process(current_case, current_scenario, save_3d_data=True, force
     return all_point_cloud, axis_value, all_target_idx, dataPath
 
 
-def gen_interactive_point_cloud(scenario, axis_value, all_target_idx, dataPath=None, save_plot=False):
+def gen_interactive_point_cloud(scenario, all_point_cloud=None, axis_value=None, all_target_idx=None, dataPath=None, save_plot=False):
     init_frame = 0
-    target_idx = all_target_idx[init_frame]
+    init_thres = 0.97
+    current_frame = init_frame
+    current_thres = init_thres
+    if all_target_idx is not None:
+        target_idx = all_target_idx[init_frame]
+    else:
+        if all_point_cloud is not None:
+            point_cloud = all_point_cloud[init_frame]
+        # Apply a threshold
+        mask = point_cloud > init_thres
+
+        # Get x, y, z indices for the entire matrix
+        x, y, z = np.indices(point_cloud.shape)
+
+        target_idx = [x[mask].tolist(),y[mask].tolist(),z[mask].tolist()] 
 
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111, projection='3d')
 
-    x_array, y_array, z_array = axis_value
+    if axis_value is not None:
+        x_array, y_array, z_array = axis_value
+    else:
+        x_array = (np.linspace(0,180,Nfft)-90)*x_ratio
+        y_array = (np.linspace(0,180,Nfft)-90)*y_ratio
+        z_array = my_vtrig.compute_dist_vec(Nfft=Nfft)
     # Create a colormap to map the normalized values to colors
     # colormap = plt.cm.viridis
 
@@ -138,27 +169,67 @@ def gen_interactive_point_cloud(scenario, axis_value, all_target_idx, dataPath=N
         os.mkdir(tmp_plot_path)
     tmp_plot_fname = f'tmp_plot_{time()}.png'
     plt.savefig(os.path.join(tmp_plot_path,tmp_plot_fname))
-    fig.subplots_adjust(left=0.25, bottom=0.25)
+    fig.subplots_adjust(left=0.25, bottom=0.3)
     axframe = fig.add_axes([0.25, 0.1, 0.65, 0.03])
+    axthres = fig.add_axes([0.25, 0.05, 0.65, 0.03])
     frame_slider = Slider(
         ax=axframe,
         label='frame',
         valmin=0,
-        valmax=200-1,
+        valmax=len(all_point_cloud)-1,
         valinit=init_frame,
         valstep=1,
     )
-    def update(val):
-        target_idx = all_target_idx[int(val)]
+    thres_slider = Slider(
+        ax=axthres,
+        label='threshold',
+        valmin=0.970,
+        valmax=0.999,
+        valinit=init_thres,
+        valstep=0.001,
+    )
+    def update_frame(val):
+        current_frame = int(val)
+        if all_target_idx is not None:
+            target_idx = all_target_idx[current_frame]
+        else:
+            if all_point_cloud is not None:
+                point_cloud = all_point_cloud[current_frame]
+            # Apply a threshold
+            mask = point_cloud > current_thres
+
+            # Get x, y, z indices for the entire matrix
+            x, y, z = np.indices(point_cloud.shape)
+
+            target_idx = [x[mask].tolist(),y[mask].tolist(),z[mask].tolist()] 
+        plot_points(target_idx)
+        fig.canvas.draw_idle()
+
+    def update_thres(val):
+        current_thres = val
+        if all_target_idx is not None:
+            target_idx = all_target_idx[current_frame]
+        else:
+            if all_point_cloud is not None:
+                point_cloud = all_point_cloud[current_frame]
+            # Apply a threshold
+            mask = point_cloud > current_thres
+
+            # Get x, y, z indices for the entire matrix
+            x, y, z = np.indices(point_cloud.shape)
+
+            target_idx = [x[mask].tolist(),y[mask].tolist(),z[mask].tolist()] 
         plot_points(target_idx)
         fig.canvas.draw_idle()
         
-    frame_slider.on_changed(update)
-    resetax = fig.add_axes([0.8, 0.025, 0.1, 0.04])
+    frame_slider.on_changed(update_frame)
+    thres_slider.on_changed(update_thres)
+    resetax = fig.add_axes([0.8, 0.005, 0.1, 0.04])
     button = Button(resetax, 'Reset', hovercolor='0.975')
 
     def reset(event):
         frame_slider.reset()
+        thres_slider.reset()
 
     button.on_clicked(reset)
     plt.show(block=True)

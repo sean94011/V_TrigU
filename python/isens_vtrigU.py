@@ -40,9 +40,9 @@ class isens_vtrigU:
         """ Load Parameters """
         # load setup parameters
         if case == None:
-            self.freq = np.load('./data/test01162023/constants/freq.npy')
-            self.nframes = np.load('./data/test01162023/constants/nframes.npy')
-            self.TxRxPairs = np.load('./data/test01162023/constants/TxRxPairs.npy')
+            self.freq = np.load('./constants/freq.npy')
+            self.nframes = np.load('./constants/nframes.npy')
+            self.TxRxPairs = np.load('./constants/TxRxPairs.npy')
         else:
             if case in listdir('./data'):
                 parameter_path = os.path.join('./data',case,'constants')

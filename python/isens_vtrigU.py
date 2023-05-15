@@ -35,15 +35,12 @@ class isens_vtrigU:
             peak_height = 0.3, 
             enhance = True, 
             enhance_rate = 100, 
-            interpolate = True
+            interpolate = True,
+            info = False
         ) -> None:
         """ Load Parameters """
         # load setup parameters
-        if case == None:
-            self.freq = np.load('./constants/freq.npy')
-            self.nframes = np.load('./constants/nframes.npy')
-            self.TxRxPairs = np.load('./constants/TxRxPairs.npy')
-        else:
+        if case is not None:
             if case in listdir('./data'):
                 parameter_path = os.path.join('./data',case,'constants')
                 self.freq = np.load(os.path.join(parameter_path,'freq.npy'))
@@ -72,12 +69,13 @@ class isens_vtrigU:
 
         self.angle_vec = np.linspace(0,180,self.Nfft)
         self.N_freq = self.freq.shape[0]
-
-        print(f'Freq Points: {self.freq.shape[0]} ')
-        print(f'TxRxPairs Shape: {self.TxRxPairs.shape}')
-        print(f'Nfft = {self.Nfft}')
-        print(f'Number of Recorded Frames: {self.nframes}')
-        print('')
+        
+        if info:
+            print(f'Freq Points: {self.freq.shape[0]} ')
+            print(f'TxRxPairs Shape: {self.TxRxPairs.shape}')
+            print(f'Nfft = {self.Nfft}')
+            print(f'Number of Recorded Frames: {self.nframes}')
+            print('')
 
 
     """**********************************************************************"""
@@ -146,9 +144,11 @@ class isens_vtrigU:
         plt.show(block=True)
 
     # Compute Distance Vector
-    def compute_dist_vec(self):
-        Ts = 1/self.Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
-        self.time_vec = np.linspace(0,Ts*(self.Nfft-1),num=self.Nfft)
+    def compute_dist_vec(self, Nfft=None):
+        if Nfft == None:
+            Nfft = self.Nfft
+        Ts = 1/Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
+        self.time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
         return self.time_vec*(c/2) # distance in meters
     
     # Normalize the signal to the range [0,1]
@@ -156,7 +156,7 @@ class isens_vtrigU:
         return (x - np.min(x))/(np.max(x)-np.min(x))
 
     # Load collected Data
-    def load_data(self, case = 'test/', scenario='move_z', return_path=False):
+    def load_data(self, case = 'test/', scenario='move_z', return_path=False, info=False):
         # specify data path components
 
         data_path = os.path.join('./data/', case, "")
@@ -172,15 +172,16 @@ class isens_vtrigU:
             # processed_path = data_path + processed_data
 
             # load data
-            print('Current scenario: ' + scenario)
-            print('')
             recArr = np.load(raw_path)
             calArr = np.load(cal_path)
-            print(f'calArr Shape: {calArr.shape}')
-            print(f'recArr Shape: {recArr.shape}')
-            print('')
-            print('recArr Channels: (frame, Tx*Rx, freqs)')
-            print('')
+            if info:
+                print('Current scenario: ' + scenario)
+                print('')
+                print(f'calArr Shape: {calArr.shape}')
+                print(f'recArr Shape: {recArr.shape}')
+                print('')
+                print('recArr Channels: (frame, Tx*Rx, freqs)')
+                print('')
 
         else:
             print(f'Scenario: {scenario} does not exist!')
@@ -408,11 +409,21 @@ class isens_vtrigU:
 
     # Compute the range profile with ifft and then take the norm
     def compute_tof_ifft(self, X, Nfft=512):
-        x = np.fft.ifft(X,Nfft,2)
-        return np.linalg.norm(x,axis=1)    
+        if len(X.shape) == 3:
+            ifft_axis = 2
+            norm_axis = 1
+        elif len(X.shape) == 2:
+            ifft_axis = 1
+            norm_axis = 0
+        else:
+            return np.linalg.norm(np.fft.ifft(X,Nfft).reshape(-1,1),axis=1)
+        x = np.fft.ifft(X,Nfft,ifft_axis)
+        return np.linalg.norm(x,axis=norm_axis)    
 
     # Pipeline for copmuting the range profile with the previous functions
-    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False):
+    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False, Nfft=None):
+        if Nfft == None:
+            Nfft = self.Nfft
         # Load Data
         calArr, recArr = self.load_data(scenario=scenario, case=case)
         # Calibrate Data
@@ -424,7 +435,7 @@ class isens_vtrigU:
         for cal_method in cal_methods:
             proArr = self.calibration(calArr,recArr,cal_method)
             # Compute Range Profile
-            tof = self.compute_tof_ifft(proArr).T
+            tof = self.compute_tof_ifft(proArr, Nfft=Nfft).T
             tofs.append(tof.T)
             if plot:
                 # plot the range profile vs frame
@@ -1000,10 +1011,12 @@ class isens_vtrigU:
     def plot_3D_point_cloud(self, point_cloud, meshgrids, th=0.8):
         print('plotting...')
         fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(projection='3d')
+        ax = fig.add_subplot(111,projection='3d')
         normalized_pc = self.normalization(point_cloud)
         target_idx = abs(normalized_pc)>th
         ax.scatter(meshgrids[0][target_idx], meshgrids[1][target_idx], meshgrids[2][target_idx])
+        # x,y,z = np.nonzero(normalized_pc)
+        # ax.scatter(x,y,z)
         ax.set_xlabel('x [m]')
         ax.set_ylabel('y [m]')
         ax.set_zlabel('z [m]')
@@ -1042,13 +1055,13 @@ def main():
     current_scenario = 'cf_y_angle_0'
     calArr, recArr = my_vtrig.load_data(case=current_case, scenario=current_scenario)
     proArr = my_vtrig.calibration(calArr,recArr,method=0)
-    x_grid = np.arange(-2,2,0.05)
-    y_grid = np.arange(-2,2,0.05)
-    z_grid = np.arange( 0,3,0.05)
+    x_grid = np.arange(-2,2.5,0.5)
+    y_grid = np.arange(-2,2.5,0.5)
+    z_grid = np.arange( 0,3.05,0.05)
     x_grid_idx, y_grid_idx, z_grid_idx = np.meshgrid(x_grid, y_grid, z_grid)
     meshgrids = [x_grid_idx, y_grid_idx, z_grid_idx]
     point_cloud = my_vtrig.rc_3D_point_cloud(proArr[50,:,:],x_grid, y_grid, z_grid)
-    my_vtrig.plot_3D_point_cloud(point_cloud, meshgrids, th=0.5)
+    my_vtrig.plot_3D_point_cloud(point_cloud, meshgrids, th=0.8)
 
 if __name__ == '__main__':
     try:

@@ -4,7 +4,7 @@ from matplotlib.widgets import Slider
 from scipy.constants import c, pi
 from math import ceil, log
 import scipy.signal
-from vtrig import isens_vtrigU
+from isens_vtrigU import isens_vtrigU
 
 RBW = 80 # in kHz
 
@@ -21,14 +21,13 @@ time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
 dist_vec = time_vec*(c/2) # distance in meters
 
 rad = isens_vtrigU()
-# cal_data, rec_data, _ = rad.load_data(case='tag/', scenario='switch10steps2m')
-cal_data, rec_data, _ = rad.load_data(case='tag/', scenario='switch5steps2m')
-# cal_data, rec_data, _ = rad.load_data(case='tag/', scenario='on2m')
-# data = rad.calibration(cal_data, rec_data, 0)
-data = rec_data
+# cal_data, rec_data = rad.load_data(case='20230306-tag-basic/', scenario='tag-0.7m-250us')
+cal_data, rec_data = rad.load_data(case='20230410-horn', scenario='1s')
+data = rad.calibration(cal_data, rec_data)
+# data = rec_data
 print(data.shape)
 
-rp = rad.compute_tof(data)
+rp = rad.compute_tof_ifft(data)
 
 def get_vis_labels(arr, label_cnt=3, precision=0):
     N = arr.shape[0]
@@ -36,9 +35,10 @@ def get_vis_labels(arr, label_cnt=3, precision=0):
     vis = list(map(lambda x: ('%.' + str(precision) + 'f') % x, arr[vis_idx]))
     return vis_idx, vis
 
-fig, (ax1, ax2) = plt.subplots(1, 2)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 plt.subplots_adjust(left=0.25, bottom=0.25)
 ax1.set_xlabel("Range (m)")
+ax2.set_xlabel("Frames")
 
 vRange = np.arange(Nfft) * c / (2 * Nfft * (freq[1] - freq[0]))
 rp_vis_idx, rp_vis = get_vis_labels(vRange, label_cnt=5, precision=1)
@@ -51,13 +51,19 @@ frame_slider = Slider(frame_slider_ax, 'Frame', 0, 99, valinit=0, valstep=1)
 range_bin_slider_ax = plt.axes([0.25, 0.06, 0.65, 0.03])
 range_bin_slider = Slider(range_bin_slider_ax, 'Range Bin', 0, Nfft-1, valinit=0, valstep=1)
 
+rp_img = ax3.imshow(rp[:, ::-1].T, aspect='auto')
+ax3.set_yticks(rp_vis_idx[::-1], labels=rp_vis)
+ax3.set_ylabel("Range (m)")
+ax3.set_xlabel("Frames")
+fig.colorbar(rp_img, ax=ax3)
+
 def rp_per_frame(val):
     frame_idx = frame_slider.val
 
     rp_single_frame = rp[frame_idx]
     rp_plot_per_frame.set_ydata(rp_single_frame)
     fig.canvas.draw_idle()
-    # ax1.set_ylim(np.min(rp_single_frame), np.max(rp_single_frame))
+    ax1.set_ylim(np.min(rp_single_frame), np.max(rp_single_frame))
 
 def rp_per_range(val):
     range_idx = range_bin_slider.val

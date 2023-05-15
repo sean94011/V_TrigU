@@ -25,8 +25,9 @@ const int ISOdelayVal = 2000;
 
 char rx_byte = 0;
 // RBW = 80kHz -> one step = 1/80k.
-const int steps = 10;
-const long rate = (long) (steps / 80.e-3); // in microseconds
+//const int steps = 10;
+//const long rate = (long) (steps / 80.0e3 * 1.0e6); // in microseconds
+const long rate = 3000000;
 const int duty = 50; // duty cycle for in-chirp modulation
 
 int starttime;

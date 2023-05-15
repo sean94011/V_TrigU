@@ -11,11 +11,8 @@ import vtrigU as vtrig
 from numpy.linalg import norm
 from scipy import constants
 
-from vtrigU_helper_functions import *
-
 # define some constants
 c = constants.c
-antsLocations = ants_locations()
 
 BW = 7e9
 Rmax = 75*c/BW
@@ -54,6 +51,12 @@ time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
 dist_vec = time_vec*(c/2) # distance in meters
 
 # Record the calibration frames
+def rec2arr(rec):
+    recArr = []
+    for key in rec.keys():
+        recArr.append(rec[key])
+    return np.array(recArr)
+
 print("Calibrating...")
 nrecs = 10
 calFrame = []
@@ -63,14 +66,44 @@ for i in range(nrecs):
     recArr = rec2arr(rec)
     calFrame.append(recArr)
 calFrame = np.mean(calFrame,axis=0)
+print(calFrame.shape)
 print("Calibration matrix collected!")
+input("Press any key to continue...")
+
+
+# Live visualize
+def get_vis_labels(arr, label_cnt=3, precision=0):
+    N = arr.shape[0]
+    vis_idx = np.arange(0, N, N // label_cnt)
+    vis = list(map(lambda x: ('%.' + str(precision) + 'f') % x, arr[vis_idx]))
+    return vis_idx, vis
 
 print("Started visualizing...")
-nframes = 10000
+fig, ax = plt.subplots(1, 1)
+vRange = np.arange(Nfft) * c / (2 * Nfft * (freq[1] - freq[0]))
+rp_plot, = ax.plot(vRange, np.abs(np.fft.ifft(calFrame[0, :], Nfft)))
+
+# rp_vis_idx, rp_vis = get_vis_labels(vRange, label_cnt=5, precision=1)
+# ax.set_xticks(rp_vis_idx, labels=rp_vis)
+
+plt.ion()
+plt.show()
+
+nframes = 100000
 for i in range(nframes):
     # write_read(str(motion_stage[i]))
     vtrig.Record()
     rec = vtrig.GetRecordingResult()
+    recArr = rec2arr(rec)
+    # recCal = recArr[0] - calFrame[0]
+    recCal = recArr[0]
+
+    rp = np.abs(np.fft.ifft(recCal, Nfft))
+    rp_plot.set_ydata(rp)
+    ax.set_ylim(np.min(rp), np.max(rp))
+    fig.canvas.draw_idle()
+
+    plt.pause(0.001)
 
 
 

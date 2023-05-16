@@ -50,6 +50,10 @@ class isens_vtrigU:
                 print(f'Directory: {case} does not exist! Aborting the program...')
                 print('')
                 sys.exit()
+        else:
+            self.freq = np.load('./constants/freq.npy')
+            self.nframes = np.load('./constants/nframes.npy')
+            self.TxRxPairs = np.load('./constants/TxRxPairs.npy')
 
         self.ants_locations = self._ants_locations()[:,:-1]
         

@@ -51,9 +51,10 @@ class isens_vtrigU:
                 print('')
                 sys.exit()
         else:
-            self.freq = np.load('./constants/freq.npy')
-            self.nframes = np.load('./constants/nframes.npy')
-            self.TxRxPairs = np.load('./constants/TxRxPairs.npy')
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            self.freq = np.load(os.path.join(current_dir, './constants/freq.npy'))
+            self.nframes = np.load(os.path.join(current_dir, './constants/nframes.npy'))
+            self.TxRxPairs = np.load(os.path.join(current_dir, './constants/TxRxPairs.npy'))
 
         self.ants_locations = self._ants_locations()[:,:-1]
         
@@ -325,9 +326,10 @@ class isens_vtrigU:
         return calFrame
 
     # scan the data
-    def scan_data(self, nframes=100):
+    def scan_data(self, nframes=100, print_progress=True):
         self.nframes = nframes
-        print("recording...")
+        if print_progress:
+            print("recording...")
         recArrs = []
         for i in range(self.nframes):
             # write_read(str(motion_stage[i]))
@@ -335,8 +337,9 @@ class isens_vtrigU:
             rec = vtrig.GetRecordingResult()
             recArrs.append(self.rec2arr(rec))
         recArrs = np.array(recArrs)
-        print("record done!")
-        print()
+        if print_progress:
+            print("record done!")
+            print()
         return recArrs
     
     # dealing with directory creations

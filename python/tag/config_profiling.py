@@ -1,4 +1,5 @@
-from isens_vtrigU import isens_vtrigU
+# ! Run in base project directory: `python -m python.tag.config_profiling`
+from ..isens_vtrigU import isens_vtrigU
 import time
 
 radar = isens_vtrigU()

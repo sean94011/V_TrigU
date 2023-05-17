@@ -10,8 +10,8 @@ c = 2.99792458e8
 n_freq = 150
 n_txrx = radar.TxRxPairs.shape[0]
 
-Rmax = 10 # max range in meters
-Rres = 0.03 # range resolution in meters
+Rmax = 100 # max range in meters
+Rres = 0.02 # range resolution in meters
 df = c / (2 * Rmax) # step frequency in Hz
 total_steps = int(Rmax / Rres) # number of steps
 frames = int(np.ceil(total_steps / n_freq))

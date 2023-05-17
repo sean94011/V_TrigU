@@ -161,10 +161,10 @@ class isens_vtrigU:
         return (x - np.min(x))/(np.max(x)-np.min(x))
 
     # Load collected Data
-    def load_data(self, case = 'test/', scenario='move_z', return_path=False, info=False):
+    def load_data(self, datapath = './data/', case = 'test/', scenario='move_z', return_path=False, info=False):
         # specify data path components
 
-        data_path = os.path.join('./data/', case, "")
+        data_path = os.path.join(datapath, case, "")
 
         if scenario in listdir(data_path):
             raw_data = 'recording.npy'

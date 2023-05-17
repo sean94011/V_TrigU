@@ -10,9 +10,9 @@ import scipy.signal
 # Configuration Parameters
 BW = 7e9
 
-freq = np.load('./constants/freq.npy')
-nframes = np.load('./constants/nframes.npy')
-TxRxPairs = np.load('./constants/TxRxPairs.npy')
+freq = np.load('../constants/freq.npy')
+nframes = np.load('../constants/nframes.npy')
+TxRxPairs = np.load('../constants/TxRxPairs.npy')
 
 Nfft = 2**(ceil(log(freq.shape[0],2))+1)
 Ts = 1 / Nfft / (freq[1] - freq[0] + 1e-16) # Avoid nan checks

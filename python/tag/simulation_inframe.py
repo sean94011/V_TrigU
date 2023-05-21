@@ -6,13 +6,15 @@ from matplotlib.widgets import Slider
 from scipy.constants import c, pi
 from math import ceil, log
 import scipy.signal
+import os
 
 # Configuration Parameters
 BW = 7e9
 
-freq = np.load('./constants/freq.npy')
-nframes = np.load('./constants/nframes.npy')
-TxRxPairs = np.load('./constants/TxRxPairs.npy')
+current_path = os.path.dirname(os.path.abspath(__file__))
+freq = np.load(os.path.join(current_path, '../constants/freq.npy'))
+nframes = np.load(os.path.join(current_path, '../constants/nframes.npy'))
+TxRxPairs = np.load(os.path.join(current_path, '../constants/TxRxPairs.npy'))
 
 Nfft = 2**(ceil(log(freq.shape[0],2))+1)
 Ts = 1 / Nfft / (freq[1] - freq[0] + 1e-16) # Avoid nan checks

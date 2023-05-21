@@ -4,13 +4,15 @@ from matplotlib.widgets import Slider
 from scipy.constants import c, pi
 from math import ceil, log
 import scipy.signal
-from isens_vtrigU import isens_vtrigU
+from ..isens_vtrigU import isens_vtrigU
+import os
 
 RBW = 80 # in kHz
 
-freq = np.load('./constants/freq.npy')
-nframes = np.load('./constants/nframes.npy')
-TxRxPairs = np.load('./constants/TxRxPairs.npy')
+current_path = os.path.dirname(os.path.abspath(__file__))
+freq = np.load(os.path.join(current_path, '../constants/freq.npy'))
+nframes = np.load(os.path.join(current_path, '../constants/nframes.npy'))
+TxRxPairs = np.load(os.path.join(current_path, '../constants/TxRxPairs.npy'))
 
 # define constants
 N_txrx = TxRxPairs.shape[0]
@@ -22,9 +24,10 @@ dist_vec = time_vec*(c/2) # distance in meters
 
 rad = isens_vtrigU()
 # cal_data, rec_data = rad.load_data(case='20230306-tag-basic/', scenario='tag-0.7m-250us')
-cal_data, rec_data = rad.load_data(case='20230410-horn', scenario='1s')
-data = rad.calibration(cal_data, rec_data)
-# data = rec_data
+datapath = os.path.join(current_path, '../data/')
+cal_data, rec_data = rad.load_data(datapath=datapath, case='20230410-horn', scenario='1s')
+# data = rad.calibration(cal_data, rec_data)
+data = rec_data
 print(data.shape)
 
 rp = rad.compute_tof_ifft(data)

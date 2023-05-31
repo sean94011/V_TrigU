@@ -45,7 +45,7 @@ class isens_vtrigU:
                 parameter_path = os.path.join('./data',case,'constants')
                 self.freq = np.load(os.path.join(parameter_path,'freq.npy'))
                 self.nframes = np.load(os.path.join(parameter_path,'nframes.npy'))
-                self.TxRxPairs = np.load(os.path.join(parameter_path,'TxRxPairs.npy'))
+                self.txRxPairs = np.load(os.path.join(parameter_path,'TxRxPairs.npy'))
             else:
                 print(f'Directory: {case} does not exist! Aborting the program...')
                 print('')
@@ -54,11 +54,11 @@ class isens_vtrigU:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             self.freq = np.load(os.path.join(current_dir, './constants/freq.npy'))
             self.nframes = np.load(os.path.join(current_dir, './constants/nframes.npy'))
-            self.TxRxPairs = np.load(os.path.join(current_dir, './constants/TxRxPairs.npy'))
+            self.txRxPairs = np.load(os.path.join(current_dir, './constants/TxRxPairs.npy'))
 
         self.ants_locations = self._ants_locations()[:,:-1]
         
-        self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
+        self.nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
         self.center_ant = 10
         self.peak_height = peak_height
         self.enhance_rate = enhance_rate
@@ -72,13 +72,13 @@ class isens_vtrigU:
         self.Rres = c/(2*self.BW)
         
 
-        self.angle_vec = np.linspace(0,180,self.Nfft)
+        self.angle_vec = np.linspace(0,180,self.nfft)
         self.N_freq = self.freq.shape[0]
         
         if info:
             print(f'Freq Points: {self.freq.shape[0]} ')
-            print(f'TxRxPairs Shape: {self.TxRxPairs.shape}')
-            print(f'Nfft = {self.Nfft}')
+            print(f'TxRxPairs Shape: {self.txRxPairs.shape}')
+            print(f'Nfft = {self.nfft}')
             print(f'Number of Recorded Frames: {self.nframes}')
             print('')
 
@@ -151,7 +151,7 @@ class isens_vtrigU:
     # Compute Distance Vector
     def compute_dist_vec(self, Nfft=None):
         if Nfft == None:
-            Nfft = self.Nfft
+            Nfft = self.nfft
         Ts = 1/Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
         self.time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
         return self.time_vec*(c/2) # distance in meters
@@ -301,13 +301,13 @@ class isens_vtrigU:
         vtrig.ApplySettings(vtrigSettings)
 
         # get antenna pairs and convert to numpy matrix
-        self.TxRxPairs = np.array(vtrig.GetAntennaPairs(vtrigSettings.mode))
+        self.txRxPairs = np.array(vtrig.GetAntennaPairs(vtrigSettings.mode))
 
         # get used frequencies in Hz
         self.freq = np.array(vtrig.GetFreqVector_MHz()) * 1e6
 
         # define constants
-        self.Nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
+        self.nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
         self.dist_vec = self.compute_dist_vec()
 
     # Record the background data for calibration usage
@@ -427,10 +427,10 @@ class isens_vtrigU:
         x = np.fft.ifft(X,Nfft,ifft_axis)
         return np.linalg.norm(x,axis=norm_axis)    
 
-    # Pipeline for copmuting the range profile with the previous functions
+    # Pipeline for computing the range profile with the previous functions
     def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False, Nfft=None):
         if Nfft == None:
-            Nfft = self.Nfft
+            Nfft = self.nfft
         # Load Data
         calArr, recArr = self.load_data(scenario=scenario, case=case)
         # Calibrate Data
@@ -497,10 +497,10 @@ class isens_vtrigU:
             interpolated_signal[:,:,i] = (left+right)/2
         interpolated_signal = interpolated_signal[:,:,:-1]
         # Adjust other parameters correspondingly
-        self.Nfft = 2**(ceil(log(interpolated_signal.shape[2],2))+1)
+        self.nfft = 2**(ceil(log(interpolated_signal.shape[2],2))+1)
         xp = np.arange(len(self.dist_vec))
         fp = self.dist_vec
-        x = np.arange(self.Nfft)
+        x = np.arange(self.nfft)
         self.dist_vec = np.interp(x,xp,fp)
         return interpolated_signal
 
@@ -550,10 +550,10 @@ class isens_vtrigU:
         print('')
         if self.interpolate:
             X = self.interpolation(X)
-        x = np.fft.ifft(X,self.Nfft,2).reshape(X.shape[0],20,20,-1)
+        x = np.fft.ifft(X,self.nfft,2).reshape(X.shape[0],20,20,-1)
         if self.enhance:
             x = self.enhance_target(x)
-        aoa = np.fft.fft(x[:,self.center_ant,:,:],self.Nfft,axis=1) # extract the center tx data and do the processing
+        aoa = np.fft.fft(x[:,self.center_ant,:,:],self.nfft,axis=1) # extract the center tx data and do the processing
         aoa = np.fft.fftshift(aoa,axes=1)
         return aoa
 
@@ -563,7 +563,7 @@ class isens_vtrigU:
         print('')
         if self.interpolate:
             X = self.interpolation(X)
-        x = np.fft.ifft(X,self.Nfft,2).reshape(X.shape[0],20,20,-1)
+        x = np.fft.ifft(X,self.nfft,2).reshape(X.shape[0],20,20,-1)
         plt.figure()
         plt.plot(self.dist_vec,self.normalization(np.abs(x[50,10,10,:])))
         plt.xlabel('Distance [m]')
@@ -572,7 +572,7 @@ class isens_vtrigU:
         plt.show(block=True)
         if self.enhance:
             x = self.enhance_target(x)
-        aod = np.fft.fft(x[:,:,self.center_ant,:],self.Nfft,axis=1) # extract the center rx data and do the processing
+        aod = np.fft.fft(x[:,:,self.center_ant,:],self.nfft,axis=1) # extract the center rx data and do the processing
         aod = np.fft.fftshift(aod,axes=1)
         return aod
     
@@ -675,7 +675,7 @@ class isens_vtrigU:
         # Number of antenna elements
         M = 20
         # number of samples
-        N = self.Nfft
+        N = self.nfft
         # Interelement spacing is half-wavelength
         d= 0.5
         a_list = []
@@ -696,15 +696,15 @@ class isens_vtrigU:
     # Compute AoA by using MUSIC on the range profile, bin by bin, for a single frame
     def compute_aoa_music_single_frame(self, rec_signal, signal_dimension=3, smoothing=True, plot=False, n_rx=20): 
         if smoothing:
-            # Calculate the forward-backward spatially smotthed correlation matrix
+            # Calculate the forward-backward spatially smoothed correlation matrix
             R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
         else:
             # Estimating the spatial correlation matrix without spatial smoothing
             R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
 
         # Regenerate the scanning vector for the sub-array
-        array_alignment = np.arange(0, n_rx, 1)* self.d
-        incident_angles= self.angle_vec
+        array_alignment = np.arange(0, n_rx, 1) * self.d
+        incident_angles = self.angle_vec
         scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
 
         # Estimate DOA 
@@ -731,12 +731,12 @@ class isens_vtrigU:
     def compute_aoa_music(self, X, n_rx=20, signal_dimension=3, smoothing=True, plot=False): 
         # Regenerate the scanning vector for the sub-array
         aoa = []
-        array_alignment = np.arange(0, n_rx, 1)* self.d
+        array_alignment = np.arange(0, n_rx, 1) * self.d
         incident_angles= self.angle_vec
         scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
         for frame in range(X.shape[0]):
             rec_signal = X.reshape((X.shape[0],20,20,-1))[frame,self.center_ant,:,:]
-            rec_signal = np.fft.ifft(rec_signal,axis=1,n=self.Nfft)
+            rec_signal = np.fft.ifft(rec_signal,axis=1,n=self.nfft)
             if smoothing:
                 # Calculate the forward-backward spatially smotthed correlation matrix
                 R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
@@ -749,7 +749,7 @@ class isens_vtrigU:
         return np.array(aoa)
     
     # Compute AoD by using MUSIC on the range profile, bin by bin, for a single frame
-    def compute_aod_music_single_frame(self,rec_signal, signal_dimension=3, smoothing=True, plot=False, n_tx=20): 
+    def compute_aod_music_single_frame(self, rec_signal, signal_dimension=3, smoothing=True, plot=False, n_tx=20):
         if smoothing:
             # Calculate the forward-backward spatially smotthed correlation matrix
             R = spatial_smoothing(rec_signal.T, P=n_tx, direction="forward-backward")
@@ -758,7 +758,7 @@ class isens_vtrigU:
             R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
 
         # Regenerate the scanning vector for the sub-array
-        array_alignment = np.arange(0, n_tx, 1)* self.d
+        array_alignment = np.arange(0, n_tx, 1) * self.d
         incident_angles= self.angle_vec
         scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
 
@@ -803,7 +803,8 @@ class isens_vtrigU:
             # Calibrate Data
             proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
         
-            range_profile = np.real(np.fft.ifft(proArr[50,self.center_ant,:,:],n=self.Nfft, axis=1))
+            # Generate range profile and target enhancements
+            range_profile = np.real(np.fft.ifft(proArr[50,self.center_ant,:,:],n=self.nfft, axis=1))
             # range_profile = np.linalg.norm(range_profile,axis=0)
             range_profile[:,np.where(self.dist_vec>2.5)] = 0
             range_profile[:,np.where(self.dist_vec<0.3)] = 0
@@ -811,8 +812,10 @@ class isens_vtrigU:
                 range_profile, peaks = self.enhance_target(range_profile)
             else:
                 _, peaks = self.enhance_target(range_profile)
+
+            # Compute AoA
             aoa = []
-            pool = mp.Pool()
+            pool = mp.Pool() # Threadpool for multi-threading
             outputs = []
             for range_bin in range(range_profile.shape[1]):
                 rec_signal = range_profile[:,range_bin].reshape((-1,1))
@@ -855,9 +858,9 @@ class isens_vtrigU:
                 calArr, recArr = self.load_data(scenario=scenario, case=case)
                 # Calibrate Data
                 proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
-            rec_signal = np.fft.ifft(proArr[frame,:,self.center_ant,:],axis=1,n=self.Nfft)
+            rec_signal = np.fft.ifft(proArr[frame,:,self.center_ant,:],axis=1,n=self.nfft)
         
-            range_profile = np.real(np.fft.ifft(proArr[frame,:,self.center_ant,:],n=self.Nfft, axis=1))
+            range_profile = np.real(np.fft.ifft(proArr[frame,:,self.center_ant,:],n=self.nfft, axis=1))
             range_profile[:,np.where(self.dist_vec>2.5)] = 0
             range_profile[:,np.where(self.dist_vec<0.3)] = 0
             if self.enhance:
@@ -878,7 +881,7 @@ class isens_vtrigU:
                     output = pool.apply_async(self.compute_aod_music_single_frame,(rec_signal,signal_dimension,smoothing,plot_aod_spectrum))
                     aod.append(output.get())
                 else:
-                    aod.append(np.zeros(self.Nfft))
+                    aod.append(np.zeros(self.nfft))
             pool.close()
             # aod = [res.get() for res in outputs]
 
@@ -958,8 +961,8 @@ class isens_vtrigU:
 
         Purpose: compute the average distance between the target and the l-th pair of transmitter and receiver
         """
-        tx_idx = self.TxRxPairs[l,0]-1
-        rx_idx = self.TxRxPairs[l,1]-1
+        tx_idx = self.txRxPairs[l,0]-1
+        rx_idx = self.txRxPairs[l,1]-1
         x_m, y_m = self.ants_locations[tx_idx,:]
         x_n, y_n = self.ants_locations[rx_idx,:]
         z_m, z_n = 0.0, 0.0
@@ -987,7 +990,7 @@ class isens_vtrigU:
 
     def reflection_coefficient(self, S, loc):
         print(f'current location: {loc}')
-        MN = len(self.TxRxPairs)
+        MN = len(self.txRxPairs)
         corr_matrix = np.zeros((MN-1,MN-1),dtype='complex')
         Q = len(self.freq)
         St = []

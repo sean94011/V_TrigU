@@ -8,7 +8,7 @@ radar = isens_vtrigU()
 
 c = 2.99792458e8
 n_freq = 150
-n_txrx = radar.TxRxPairs.shape[0]
+n_txrx = radar.txRxPairs.shape[0]
 
 Rmax = 100 # max range in meters
 Rres = 0.02 # range resolution in meters

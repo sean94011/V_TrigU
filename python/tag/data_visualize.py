@@ -5,9 +5,9 @@ import os
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
-case = "20230306-tag-basic/tag-0.7m-2s"
-data_path = os.path.join(current_path, '../data', case)
-recording = np.load(os.path.join(data_path, 'recording.npy'))
+case = "anechoic-cr/nothing-rbw/"
+data_path = os.path.join(current_path, '../../data', case)
+recording = np.load(os.path.join(data_path, 'recording_800kHz.npy'))
 
 fig, axes = plt.subplots(2, 1)
 

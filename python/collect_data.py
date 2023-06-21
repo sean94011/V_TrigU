@@ -3,8 +3,8 @@ import numpy as np
 import os
 import time
 
-case = 'radar-tests'
-scenario = 'cr-moving'
+case = 'anechoic-cr'
+scenario = '1m-table-10k'
 calibrate = True
 
 curr_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,7 +12,8 @@ data_dir = os.path.join(curr_dir, '../data/{}/{}'.format(case, scenario))
 
 radar = isens_vtrigU()
 
-radar.scan_setup()
+radar.scan_setup(rbw=10)
+# radar.scan_setup(rbw=100)
 cfg = {
     'start_freq': radar.start_freq,
     'stop_freq': radar.stop_freq,
@@ -34,9 +35,11 @@ print()
 
 if calibrate:
     input("Press Enter to start calibration...")
+    time.sleep(2)
     calFrame = radar.scan_calibration()
 
 input("Press Enter to start recording...")
+time.sleep(2)
 record_time = time.time()
 recData = radar.scan_data()
 record_time = time.time() - record_time

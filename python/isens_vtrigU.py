@@ -32,20 +32,23 @@ class isens_vtrigU:
     def __init__(
             self, 
             case = None,
+            data_folder = './data',
             peak_height = 0.3, 
             enhance = True, 
             enhance_rate = 100, 
+            angle_nfft = [512,512],
+            range_nfft = None,
             interpolate = True,
             info = False
         ) -> None:
         """ Load Parameters """
         # load setup parameters
         if case is not None:
-            if case in listdir('./data'):
-                parameter_path = os.path.join('./data',case,'constants')
+            if case in listdir(data_folder):
+                parameter_path = os.path.join(data_folder,case,'constants')
                 self.freq = np.load(os.path.join(parameter_path,'freq.npy'))
-                self.nframes = np.load(os.path.join(parameter_path,'nframes.npy'))
-                self.txRxPairs = np.load(os.path.join(parameter_path,'TxRxPairs.npy'))
+                # self.nframes = np.load(os.path.join(parameter_path,'nframes.npy'))
+                self.TxRxPairs = np.load(os.path.join(parameter_path,'TxRxPairs.npy'))
             else:
                 print(f'Directory: {case} does not exist! Aborting the program...')
                 print('')
@@ -57,8 +60,11 @@ class isens_vtrigU:
             self.txRxPairs = np.load(os.path.join(current_dir, './constants/TxRxPairs.npy'))
 
         self.ants_locations = self._ants_locations()[:,:-1]
-        
-        self.nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
+        self.data_folder = data_folder
+        if range_nfft is None:
+            self.range_nfft = 2**(ceil(log(self.freq.shape[0],2))+1)
+        else:
+            self.range_nfft = range_nfft
         self.center_ant = 10
         self.peak_height = peak_height
         self.enhance_rate = enhance_rate
@@ -71,14 +77,15 @@ class isens_vtrigU:
         self.BW = 7e9
         self.Rres = c/(2*self.BW)
         
-
-        self.angle_vec = np.linspace(0,180,self.nfft)
+        self.angle_nfft = angle_nfft
+        self.AoD_vec = np.linspace(0,180,self.angle_nfft[0])
+        self.AoA_vec = np.linspace(0,180, self.angle_nfft[1])
         self.N_freq = self.freq.shape[0]
         
         if info:
             print(f'Freq Points: {self.freq.shape[0]} ')
-            print(f'TxRxPairs Shape: {self.txRxPairs.shape}')
-            print(f'Nfft = {self.nfft}')
+            print(f'TxRxPairs Shape: {self.TxRxPairs.shape}')
+            print(f'nfft = {self.nfft}')
             print(f'Number of Recorded Frames: {self.nframes}')
             print('')
 
@@ -149,11 +156,11 @@ class isens_vtrigU:
         plt.show(block=True)
 
     # Compute Distance Vector
-    def compute_dist_vec(self, Nfft=None):
-        if Nfft == None:
-            Nfft = self.nfft
-        Ts = 1/Nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
-        self.time_vec = np.linspace(0,Ts*(Nfft-1),num=Nfft)
+    def compute_dist_vec(self, nfft=None):
+        if nfft == None:
+            nfft = self.nfft
+        Ts = 1/nfft/(self.freq[1]-self.freq[0]+1e-16) # Avoid nan checks
+        self.time_vec = np.linspace(0,Ts*(nfft-1),num=nfft)
         return self.time_vec*(c/2) # distance in meters
     
     # Normalize the signal to the range [0,1]
@@ -161,10 +168,10 @@ class isens_vtrigU:
         return (x - np.min(x))/(np.max(x)-np.min(x))
 
     # Load collected Data
-    def load_data(self, datapath = './data/', case = 'test/', scenario='move_z', return_path=False, info=False):
+    def load_data(self, data_folder='./data', case = 'test/', scenario='move_z', return_path=False, info=False):
         # specify data path components
 
-        data_path = os.path.join(datapath, case, "")
+        data_path = os.path.join(self.data_folder, case, "")
 
         if scenario in listdir(data_path):
             raw_data = 'recording.npy'
@@ -348,22 +355,22 @@ class isens_vtrigU:
         current_date = now.strftime("%m%d%Y")
         current_time = now.strftime("%H%M%S")
 
-        if case == None or case not in listdir('./data'):
+        if case == None or case not in listdir(self.data_folder):
             case == f'test{current_date}'
-            if case not in listdir('./data'):
+            if case not in listdir(self.data_folder):
                 print(f"The case does not exist in the current data directory, creating a new directory with name: {case} ...")
             else:
                 print(f'Creating a new directory with name: {case} ...')
-            os.mkdir(os.path.join('./data',case))
+            os.mkdir(os.path.join(self.data_folder,case))
     
         if scenario == None:
             scenario = input("Please Enter the Current Recording's Scenario Name")
             print('')
-        if scenario not in listdir(os.path.join('./data',case)):
+        if scenario not in listdir(os.path.join(self.data_folder,case)):
             scenario = f'{scenario}_{current_time}'
-            os.mkdir(os.path.join('./data',case,scenario))
+            os.mkdir(os.path.join(self.data_folder,case,scenario))
 
-        current_path = os.path.join('./data',case,scenario,'')
+        current_path = os.path.join(self.data_folder,case,scenario,'')
         return current_path
     
     # Scanning pipeline by putting all the previous helper functions together
@@ -415,7 +422,7 @@ class isens_vtrigU:
     """**********************************************************************"""
 
     # Compute the range profile with ifft and then take the norm
-    def compute_tof_ifft(self, X, Nfft=512):
+    def compute_tof_ifft(self, X, nfft=512):
         if len(X.shape) == 3:
             ifft_axis = 2
             norm_axis = 1
@@ -423,14 +430,14 @@ class isens_vtrigU:
             ifft_axis = 1
             norm_axis = 0
         else:
-            return np.linalg.norm(np.fft.ifft(X,Nfft).reshape(-1,1),axis=1)
-        x = np.fft.ifft(X,Nfft,ifft_axis)
+            return np.linalg.norm(np.fft.ifft(X,nfft).reshape(-1,1),axis=1)
+        x = np.fft.ifft(X,nfft,ifft_axis)
         return np.linalg.norm(x,axis=norm_axis)    
 
     # Pipeline for computing the range profile with the previous functions
-    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False, Nfft=None):
-        if Nfft == None:
-            Nfft = self.nfft
+    def range_pipeline(self, case='test/', scenario='move_z', cal_method=0, plot=False, nfft=None):
+        if nfft == None:
+            nfft = self.nfft
         # Load Data
         calArr, recArr = self.load_data(scenario=scenario, case=case)
         # Calibrate Data
@@ -442,7 +449,7 @@ class isens_vtrigU:
         for cal_method in cal_methods:
             proArr = self.calibration(calArr,recArr,cal_method)
             # Compute Range Profile
-            tof = self.compute_tof_ifft(proArr, Nfft=Nfft).T
+            tof = self.compute_tof_ifft(proArr, nfft=nfft).T
             tofs.append(tof.T)
             if plot:
                 # plot the range profile vs frame
@@ -736,7 +743,7 @@ class isens_vtrigU:
         scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
         for frame in range(X.shape[0]):
             rec_signal = X.reshape((X.shape[0],20,20,-1))[frame,self.center_ant,:,:]
-            rec_signal = np.fft.ifft(rec_signal,axis=1,n=self.nfft)
+            rec_signal = np.fft.ifft(rec_signal,axis=1,n=self.range_nfft)
             if smoothing:
                 # Calculate the forward-backward spatially smotthed correlation matrix
                 R = spatial_smoothing(rec_signal.T, P=n_rx, direction="forward-backward")
@@ -803,7 +810,6 @@ class isens_vtrigU:
             # Calibrate Data
             proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
         
-            # Generate range profile and target enhancements
             range_profile = np.real(np.fft.ifft(proArr[50,self.center_ant,:,:],n=self.nfft, axis=1))
             # range_profile = np.linalg.norm(range_profile,axis=0)
             range_profile[:,np.where(self.dist_vec>2.5)] = 0
@@ -858,9 +864,9 @@ class isens_vtrigU:
                 calArr, recArr = self.load_data(scenario=scenario, case=case)
                 # Calibrate Data
                 proArr = self.calibration(calArr,recArr,cal_method).reshape(100,20,20,-1)
-            rec_signal = np.fft.ifft(proArr[frame,:,self.center_ant,:],axis=1,n=self.nfft)
+            rec_signal = np.fft.ifft(proArr[frame,:,self.center_ant,:],axis=1,n=self.range_nfft)
         
-            range_profile = np.real(np.fft.ifft(proArr[frame,:,self.center_ant,:],n=self.nfft, axis=1))
+            range_profile = np.real(np.fft.ifft(proArr[frame,:,self.center_ant,:],n=self.range_nfft, axis=1))
             range_profile[:,np.where(self.dist_vec>2.5)] = 0
             range_profile[:,np.where(self.dist_vec<0.3)] = 0
             if self.enhance:
@@ -881,7 +887,7 @@ class isens_vtrigU:
                     output = pool.apply_async(self.compute_aod_music_single_frame,(rec_signal,signal_dimension,smoothing,plot_aod_spectrum))
                     aod.append(output.get())
                 else:
-                    aod.append(np.zeros(self.nfft))
+                    aod.append(np.zeros(self.range_nfft))
             pool.close()
             # aod = [res.get() for res in outputs]
 
@@ -927,7 +933,7 @@ class isens_vtrigU:
         else:
             fname = f'aod_music_SOI_{signal_dimension}_ph_{self.peak_height}.npy'
 
-        dir_path = os.path.join('./data',case,scenario,'')
+        dir_path = os.path.join(self.data_folder,case,scenario,'')
         if fname in listdir(dir_path):
             heatmaps = np.load(os.path.join(dir_path,fname))
         else:

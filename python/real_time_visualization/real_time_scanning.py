@@ -12,6 +12,9 @@ from parameter_setup import load_params, rec2arr
 def main():
     # load parameters
     params = load_params()
+    data_queue_size = 200
+    if data_queue_size is None:
+        data_queue_size = params['doppler_window_size']*2
     print('Setting up the radar...')
     # initialize the device
     vtrig.Init()
@@ -33,9 +36,9 @@ def main():
     # Record the calibration frames
     recalibrate = input('Recalibrate? (Y/n)')
     if recalibrate == 'Y':
-        time.sleep(10)
+        # time.sleep(10)
         print("Collecting calibration data...")
-        nrecs = 10
+        nrecs = 30
         calFrame = []
         for i in range(nrecs):
             vtrig.Record()
@@ -62,7 +65,7 @@ def main():
         rec = vtrig.GetRecordingResult()
         rec_arr = rec2arr(rec)
         pro_arr = rec_arr - cal_arr
-        if len(data_queue) >= params['doppler_window_size']*2:
+        if len(data_queue) > data_queue_size:
             os.remove(os.path.join('./data_queue',data_queue[0]))
         np.save(f'./data_queue/{datetime.datetime.now().strftime("%m-%d-%Y--%H-%M-%S")}_{time.time_ns()}.npy',pro_arr)
         print('Scanning Frame Duration', time.time()-start, '[s]')

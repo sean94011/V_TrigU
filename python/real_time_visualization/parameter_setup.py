@@ -13,7 +13,7 @@ def main():
     start_freq = 62.0*1000
     stop_freq = 69.0*1000
     num_freq_step = 150
-    rbw = 10
+    rbw = 10 # [kHz]
     # FFT Bins
     range_Nfft = 512
     angle_Nfft = [64, 64]

@@ -18,9 +18,9 @@ def main():
     # seat_combination = 1
     # used_rbw = 10
     # data_folder = f'./collected_data/{num_passenger}p_seat_{seat_combination}_rbw_{used_rbw}_06-26-2023--19-10-43_1687824643607988500/'
-    collected_data_folder = './collected_data'
+    collected_data_folder = '../../../../../Library/CloudStorage/Box-Box/Vayyar Radar/simulation_data' #'./collected_data'
     for data in sorted(os.listdir(collected_data_folder)):
-        n_target = 1
+        n_target = 2
         if data[0] != f'{n_target}':
             continue
         if data[15+n_target-1:17+n_target-1] == 'cf':
@@ -85,6 +85,7 @@ def main():
         doppler_cal_frame = data_arr[0:cal_frame_len]
         doppler_cal_frame = np.fft.ifft(doppler_cal_frame, n=params['range_Nfft'], axis=2)
         doppler_cal_frame = np.mean(doppler_cal_frame,axis=0)
+        
         
         # rec_arr = np.load(os.path.join(data_queue_folder,data_queue[cur_frame]))
 
@@ -231,10 +232,9 @@ def main():
         doppler_arr = np.fft.ifft(data_arr,n=params['range_Nfft'],axis=2)
         doppler_arr = doppler_arr - doppler_cal_frame[np.newaxis,:,:]
         params['doppler_Nfft'] = 2**(ceil(log(doppler_arr.shape[0],2))+1)
-
         start = time.time()
-        doppler_arr[:,:,np.where(params['dist_vec']>bound)]=np.min(np.abs(doppler_arr))
-        print(time.time()-start)
+        # doppler_arr[:,:,np.where(params['dist_vec']>bound)]=np.min(np.abs(doppler_arr))
+        # print(time.time()-start)
         doppler_arr = doppler_arr.reshape(-1,20,20,params['range_Nfft'])
         print(time.time()-start)
         # doppler_arr = np.fft.fft(doppler_arr,n=params['doppler_Nfft'],axis=0)
@@ -244,30 +244,49 @@ def main():
         print(time.time()-start)
         doppler_arr = np.fft.fft(doppler_arr,n=params['doppler_Nfft'],axis=0)
         print(time.time()-start)
-        doppler_arr = np.mean(doppler_arr,axis=3)
-        print(time.time()-start)
-        
-        doppler_arr = np.mean(doppler_arr,axis=1)
+        # print(doppler_arr.shape)
+        # doppler_arr = np.mean(doppler_arr,axis=3)
+        # print(time.time()-start)
+        # print(doppler_arr.shape)
+        doppler_arr_aoa = np.mean(doppler_arr,axis=1)
+        doppler_arr_aoa = np.mean(doppler_arr_aoa,axis=2)
         print(doppler_arr.shape)
         doppler_arr = np.abs(doppler_arr)
-        plt.figure(figsize=(12,6))
-        r_bound = 30
-        d_bound = 5
-        extent = [params['doppler_freq'][d_bound], params['doppler_freq'][-d_bound], params['dist_vec'][r_bound], params['dist_vec'][-r_bound]]
+        r_bound = 10
+        d_bound = 50
+        extent = [np.min(params['doppler_freq']), np.max(params['doppler_freq']), params['AoA_vec'][r_bound], params['AoA_vec'][-r_bound]]
         # plt.subplot(1,2,2)
-        plt.imshow(doppler_arr[d_bound:-d_bound,r_bound:-r_bound].T, aspect='auto', origin='lower', extent=extent)
+        plt.figure(figsize=(12,10))
+        plt.suptitle(data)
+        plt.subplot(2,2,1)
+        plt.imshow(np.abs(doppler_arr_aoa[d_bound:-d_bound,r_bound:-r_bound].T), aspect='auto', origin='lower', extent=extent)
+        plt.xlabel('Doppler Frequency [Hz]')
+        plt.ylabel('AoA [deg]')
+        plt.title('AoA v.s. Doppler Frequency')
+        plt.colorbar()
+
+        doppler_arr_aod = np.mean(doppler_arr,axis=2)
+        doppler_arr_aod = np.mean(doppler_arr_aod,axis=2)
+        plt.subplot(2,2,2)
+        extent = [np.min(params['doppler_freq']), np.max(params['doppler_freq']), params['AoD_vec'][r_bound], params['AoD_vec'][-r_bound]]
+        plt.imshow(np.abs(doppler_arr_aod[d_bound:-d_bound,r_bound:-r_bound].T), aspect='auto', origin='lower', extent=extent)
+        plt.xlabel('Doppler Frequency [Hz]')
+        plt.ylabel('AoD [deg]')
+        plt.title('AoD v.s. Doppler Frequency')
+        plt.colorbar()
+        plt.grid()
+
+        doppler_arr_range = np.mean(doppler_arr,axis=1)
+        doppler_arr_range = np.mean(doppler_arr_range,axis=1)
+        plt.subplot(2,2,3)
+        extent = [np.min(params['doppler_freq']), np.max(params['doppler_freq']), params['dist_vec'][r_bound], params['dist_vec'][-r_bound]]
+        plt.imshow(np.abs(doppler_arr_range[d_bound:-d_bound,r_bound:-r_bound].T), aspect='auto', origin='lower', extent=extent)
         plt.xlabel('Doppler Frequency [Hz]')
         plt.ylabel('Range [m]')
-        plt.title(data)
+        plt.title('Range v.s. Doppler Frequency')
         plt.colorbar()
-        # plt.subplot(1,2,1)
-        # plt.title('YZ Perspective')
-        # extent = [grid_y.min(), grid_y.max(), grid_z.min(), bound]
-        # plt.imshow(yz_projection.T,origin='lower',aspect='auto', extent=extent, vmin=vmin, interpolation='nearest')
-        # plt.colorbar()
-        # plt.xlabel('Y [m]')
-        # plt.ylabel('Z [m]')
         plt.grid()
+
         plt.show()
         break
         

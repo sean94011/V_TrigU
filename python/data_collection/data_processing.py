@@ -18,21 +18,24 @@ def main():
     # seat_combination = 1
     # used_rbw = 10
     # data_folder = f'./collected_data/{num_passenger}p_seat_{seat_combination}_rbw_{used_rbw}_06-26-2023--19-10-43_1687824643607988500/'
-    collected_data_folder = '../../../../../Library/CloudStorage/Box-Box/Vayyar Radar/simulation_data' #'./collected_data'
+    collected_data_folder = '../../../../../Library/CloudStorage/Box-Box/Vayyar Radar/vitalsign1019' 
+    # collected_data_folder = './collected_data'
     for data in sorted(os.listdir(collected_data_folder)):
-        n_target = 2
-        if data[0] != f'{n_target}':
-            continue
-        if data[15+n_target-1:17+n_target-1] == 'cf':
-            continue
-        if data[15+n_target-1:17+n_target-1] == 'mp':
-            continue
-        cur_rbw = '10'
-        if cur_rbw == '10':
-            cur_rbw = '10_'
-        if data[14+n_target-1:17+n_target-1] != cur_rbw:
-            continue
-        if data[18:20] == '1b':
+        # n_target = 2
+        # if data[0] != f'{n_target}':
+        #     continue
+        # if data[15+n_target-1:17+n_target-1] == 'cf':
+        #     continue
+        # if data[15+n_target-1:17+n_target-1] == 'mp':
+        #     continue
+        # cur_rbw = '10'
+        # if cur_rbw == '10':
+        #     cur_rbw = '10_'
+        # if data[14+n_target-1:17+n_target-1] != cur_rbw:
+        #     continue
+        # if data[18:20] == '1b':
+        #     continue
+        if '+' in data:
             continue
         file_name = data
         # plt.title(f'Experiment: {data}')
@@ -41,47 +44,52 @@ def main():
         data_folder = os.path.join(collected_data_folder,data)
 
         # Setup the data path
-        data_queue_folder = os.path.join(data_folder, 'data_queue')
-        data_queue = sorted(os.listdir(data_queue_folder)) 
-        
+        # data_queue_folder = os.path.join(data_folder, 'data_queue')
+        # data_queue = sorted(os.listdir(data_queue_folder)) 
+        data_arr = np.load(os.path.join(data_folder,'recording.npy'))
         # load parameters
-        params = load_params(data_folder)
+        params = np.load(os.path.join(data_folder, "config.npy"), allow_pickle=True).item()#load_params(data_folder)
+        print(params.keys())
+        params['range_Nfft'] = 2**(ceil(log(len(data_arr),2))+1)
         vmin = 0.0#6
-        ntarget = 100
+        ntarget = 3
         thres=0.6
         eps=10
         n=2
         enhance_rate = 1
         bound = 3
-        n_antenna = 20
-        time_window_len = 5
-        cal_frame_len = 5
-        if time_window_len < cal_frame_len:
-            time_window_len = cal_frame_len
+        n_rx = 20
+        # time_window_len = 5
+        # if time_window_len < cal_frame_len:
+        #     time_window_len = cal_frame_len
         choose_center = False
         if choose_center:
             ants_loc = 'center'
         else:
             ants_loc = 'front'
-        cur_folder_name = f'{n_target}p_with_cf_{n_antenna}x{n_antenna}_antenna_{ants_loc}'
+        cur_folder_name = 'Infant_Only'#f'{n_target}p_with_cf_{n_rx}x{n_rx}_antenna_{ants_loc}'
         if cur_folder_name not in os.listdir('./processed_data_plots'):
             os.mkdir(f'./processed_data_plots/{cur_folder_name}')
         cur_fig_name = f'./processed_data_plots/{cur_folder_name}/{file_name}.jpg'
         # Record the starting time
         start = time.time()
-        cal_arr = params['cal_arr']
-        cal_frame = np.fft.ifft(cal_arr, axis=2, n=params['range_Nfft'])
-        cal_frame = np.mean(cal_frame, axis=0)
+        # cal_arr = params['cal_arr']
+        # cal_frame = np.fft.ifft(cal_arr, axis=2, n=params['range_Nfft'])
+        # cal_frame = np.mean(cal_frame, axis=0)
         # cal_arr = cal_frame[len(cal_frame)//2]#np.mean(cal_frame, axis=0)
-        data_arr = []
-        for cur_frame_data in data_queue:
-            # cur_frame_data = data # data_queue[cur_frame]
-            data_arr.append(np.load(os.path.join(data_queue_folder,cur_frame_data)))
+        # data_arr = []
+        # for cur_frame_data in data_queue:
+        #     # cur_frame_data = data # data_queue[cur_frame]
+        #     data_arr.append(np.load(os.path.join(data_queue_folder,cur_frame_data)))
         rec_arr = data_arr[cur_frame]#np.mean(np.array(data_arr), axis=0)
-        data_arr = np.stack(data_arr,axis=0)
-        cal_frame = data_arr[cur_frame-time_window_len:cur_frame-time_window_len+cal_frame_len]
-        cal_frame = np.fft.ifft(cal_frame, n=params['range_Nfft'], axis=2)
-        cal_frame = np.mean(cal_frame, axis=0)
+        n_tx = rec_arr.shape[0] // n_rx
+        params['angle_Nfft'] = [2**(ceil(log(n_tx,2))+1),2**(ceil(log(n_rx,2))+1)]
+        # data_arr = np.stack(data_arr,axis=0)
+        # cal_frame = data_arr[cur_frame-time_window_len:cur_frame-time_window_len+cal_frame_len]
+        # cal_frame = np.fft.ifft(cal_frame, n=params['range_Nfft'], axis=2)
+        # cal_frame = np.mean(cal_frame, axis=0)
+        cal_frame_len = 5
+        cal_frame = np.mean(data_arr[:cal_frame_len,:,:], axis=0)
         doppler_cal_frame = data_arr[0:cal_frame_len]
         doppler_cal_frame = np.fft.ifft(doppler_cal_frame, n=params['range_Nfft'], axis=2)
         doppler_cal_frame = np.mean(doppler_cal_frame,axis=0)
@@ -91,20 +99,22 @@ def main():
 
         # cur_frame_data = data_queue[cur_frame]
         # rec_arr = np.load(os.path.join(data_queue_folder,cur_frame_data))
-        pro_arr = rec_arr #- cal_arr
+        print(rec_arr.shape, cal_frame.shape)
+        pro_arr = rec_arr - cal_frame
+        print(pro_arr.shape)
 
         # Extract Certain Number of antennas
         
         if choose_center:
             center_antenna = 10
-            start_antenna = center_antenna - n_antenna//2
-            end_antenna = center_antenna + n_antenna//2
+            start_antenna = center_antenna - n_rx//2
+            end_antenna = center_antenna + n_rx//2
         else:
             start_antenna = 0
-            end_antenna = n_antenna
-        pro_arr = pro_arr.reshape(20,20,-1)
-        pro_arr = pro_arr[start_antenna:end_antenna,start_antenna:end_antenna,:]
-        pro_arr = pro_arr.reshape(-1,150)
+            end_antenna = n_rx
+        # pro_arr = pro_arr.reshape(20,20,-1)
+        # pro_arr = pro_arr[start_antenna:end_antenna,start_antenna:end_antenna,:]
+        # pro_arr = pro_arr.reshape(-1,150)
 
 
         range_profile = np.linalg.norm(pro_arr,axis=0)
@@ -113,16 +123,15 @@ def main():
         # sorted_peak_indices = np.argsort(range_profile[range_peaks])[::-1][:ntarget]
         # top_range_peaks = range_peaks[sorted_peak_indices]
         # # load 
-        range_profile = np.linalg.norm(np.fft.ifft(pro_arr, n=512, axis=1)-cal_frame,axis=0)
+        range_profile = np.linalg.norm(np.fft.ifft(pro_arr, n=512, axis=1),axis=0)
         # range_profile[np.where(params['dist_vec']>bound)]=np.min(np.abs(range_profile))
         raw_range_profile = np.linalg.norm(np.fft.ifft(rec_arr, n=512, axis=1),axis=0)
         # raw_range_profile[np.where(params['dist_vec']>bound)]=np.min(np.abs(raw_range_profile))
-        cal_range_profile = np.linalg.norm(cal_frame,axis=0)
+        cal_range_profile = np.linalg.norm(np.fft.ifft(cal_frame, n=512, axis=1),axis=0)
         # cal_range_profile[np.where(params['dist_vec']>bound)]=np.min(np.abs(cal_range_profile))
 
-        pro_arr_3D = pro_arr.reshape(n_antenna,n_antenna,150)#[chosen_frame,:,:,:]
+        pro_arr_3D = pro_arr.reshape(-1,n_rx,150)#[chosen_frame,:,:,:]
         pro_arr_3D = np.fft.ifft(pro_arr_3D, n=params['range_Nfft'], axis=2)
-        pro_arr_3D = pro_arr_3D - cal_frame.reshape(20,20,-1)
         # pro_arr_3D[:,:,np.where(params['dist_vec']>bound)]=np.min(np.abs(pro_arr_3D))
 
         
@@ -138,6 +147,8 @@ def main():
         print(params['dist_vec'][target_range_bin])
 
         # Define the coordinate values as per your actual data
+        params['AoD_vec'] = np.linspace(0,180,params['angle_Nfft'][0])
+        params['AoA_vec'] = np.linspace(0,180,params['angle_Nfft'][1])
         theta_values = params['AoD_vec']
         phi_values = params['AoA_vec']
         r_values = params['dist_vec']  # replace with actual range if different
@@ -154,6 +165,7 @@ def main():
 
         # Convert the grid to Cartesian coordinates
         grid_x, grid_y, grid_z = spherical_to_rectangular(grid_r, grid_theta, grid_phi)
+        print(np.min(grid_y))
 
         rect_data = interpolator((grid_theta, grid_phi, grid_r))
 
@@ -166,6 +178,8 @@ def main():
         # yz_projection = np.abs(np.sum(rect_data, axis=0))#np.abs(rect_data.mean(axis=0))
         # params['x_offset_shift'] = 0
         # params['y_offset_shift'] = 0
+        params['y_offset_shift'] = -11
+        params['x_offset_shift'] = 27
         xy_projection = np.roll(xy_projection,shift=params['y_offset_shift'],axis=1)
         xy_projection = np.roll(xy_projection,shift=params['x_offset_shift'],axis=0)
         xz_projection = np.roll(xz_projection,shift=params['x_offset_shift'],axis=0)[:,np.where(params['dist_vec']<=bound)].squeeze()
@@ -183,7 +197,7 @@ def main():
                 seat_for_title.append(f'#{i+1}')
         seat_for_title = ', '.join(seat_for_title)
         fig = plt.figure(figsize=(12,10))
-        fig.suptitle(f'{file_name[:-4]}\nAntennas: {n_antenna}x{n_antenna}\nDetection Result: {n_occupants} people in the vehicle | Location: Seat {seat_for_title}')
+        fig.suptitle(f'{file_name[:-4]}\nAntennas: {n_tx}x{n_rx}\nDetection Result: {n_occupants} people in the vehicle | Location: Seat {seat_for_title}')
 
         plt.subplot(2,2,2)
         plt.title('XY Perspective')
@@ -198,9 +212,9 @@ def main():
         plt.title('Range Profile')
 
         # range_profile[top_range_peaks] = range_profile[top_range_peaks]*10
-
-        plt.plot(params['dist_vec'],cal_range_profile,label='background')
-        plt.plot(params['dist_vec'],raw_range_profile,label='w/o background subtraction')
+        plt.plot(params['dist_vec'],range_profile,label='w/ background subtraction')
+        # plt.plot(params['dist_vec'],cal_range_profile,label='background')
+        # plt.plot(params['dist_vec'],raw_range_profile,label='w/o background subtraction')
         # plt.plot(params['dist_vec'],np.linalg.norm(pro_arr_3D.reshape(-1,params['range_Nfft']),axis=0),label='w/ background subtraction')
         plt.xlabel('Range [m]')
         plt.ylabel('Magnitude')
@@ -223,10 +237,10 @@ def main():
         plt.ylabel('Z [m]')
         plt.grid()
         plt.show()
-        # plt.savefig(cur_fig_name)
-        # plt.close()
+        plt.savefig(cur_fig_name)
+        plt.close()
         print('Occupancy Detection Frame Duration: ',time.time()-start, '[s]')
-        # continue
+        break
         # Doppler Extraction
         # doppler_arr = np.linalg.norm(data_arr,axis=1)
         doppler_arr = np.fft.ifft(data_arr,n=params['range_Nfft'],axis=2)
